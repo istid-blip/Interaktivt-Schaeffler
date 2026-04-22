@@ -177,15 +177,16 @@
             ctx.lineWidth = 1;
             ctx.font = "13px Arial";
             
-            const ferriteLines = [
-                { startCr: 16.25, startNi: 12.38, endCr: 32.0, endNi: 28.0, label: "0% Ferrit", labelCr: 28.5, labelNi: 25.0 },
+const ferriteLines = [
+                // 0% er nå forlenget matematisk helt ned til X-aksen (Ni = 0)
+                { startCr: 3.77,  startNi: 0,     endCr: 32.0, endNi: 28.0, label: "0% Ferrit", labelCr: 28.5, labelNi: 25.0 },
                 { startCr: 15.5,  startNi: 9.6,   endCr: 34.0, endNi: 26.3, label: "5%",        labelCr: 29.5, labelNi: 22.7 },
                 { startCr: 14.9,  startNi: 8.0,   endCr: 36.0, endNi: 27.0, label: "10%",       labelCr: 31.0, labelNi: 22.8 },
                 { startCr: 14.2,  startNi: 6.0,   endCr: 38.0, endNi: 24.0, label: "20%",       labelCr: 33.0, labelNi: 20.5 },
                 { startCr: 13.5,  startNi: 4.3,   endCr: 40.0, endNi: 19.9, label: "40%",       labelCr: 34.5, labelNi: 17.0 },
                 { startCr: 12.8,  startNi: 2.1,   endCr: 40.0, endNi: 13.8, label: "80%",       labelCr: 35.5, labelNi: 12.3 },
-                // 100% linjen tegnes over bunnlinjen (l_d)
-                { startCr: 26.0,  startNi: 4.5,   endCr: 40.0, endNi: 9.0,  label: "100%",      labelCr: 36.5, labelNi: 8.5 }
+                // 100% er også trukket ned til X-aksen (Ni = 0)
+                { startCr: 12.0,  startNi: 0,     endCr: 40.0, endNi: 9.0,  label: "100%",      labelCr: 36.5, labelNi: 8.5 }
             ];
 
             ferriteLines.forEach(line => {

@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 800px;
+            max-width: 850px;
             margin: 20px auto;
             padding: 20px;
             background-color: #f4f4f9;
@@ -28,7 +28,7 @@
         }
         .canvas-container {
             flex: 2;
-            min-width: 400px;
+            min-width: 450px;
         }
         canvas {
             background-color: #fff;
@@ -61,14 +61,14 @@
 <body>
 
     <h2>Interaktivt Schaeffler-diagram</h2>
-    <p>Juster legeringselementene (vektprosent) for å se hvordan stålet plasserer seg i diagrammet.</p>
+    <p>Juster legeringselementene for å se fasestrukturen endre seg. Fargekodene viser de rene faseområdene.</p>
 
     <div class="container">
         <div class="controls" id="controls">
             </div>
 
         <div class="canvas-container">
-            <canvas id="schaefflerCanvas" width="500" height="400"></canvas>
+            <canvas id="schaefflerCanvas" width="600" height="450"></canvas>
             
             <div class="results">
                 <strong>Kromekvivalent (Cr<sub>eq</sub>): </strong> <span id="crEqOut">0.0</span><br>
@@ -81,7 +81,7 @@
         const canvas = document.getElementById('schaefflerCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Startverdier (Typisk 304 Rustfritt Stål)
+        // Startverdier (Typisk 304 Austenittisk)
         const elements = {
             Cr: { value: 18.0, min: 0, max: 40, step: 0.1 },
             Ni: { value: 8.0, min: 0, max: 30, step: 0.1 },
@@ -93,11 +93,11 @@
 
         const maxCr = 40;
         const maxNi = 30;
-        const margin = 40;
+        const margin = 50;
         const plotWidth = canvas.width - margin * 2;
         const plotHeight = canvas.height - margin * 2;
 
-        // Bygg opp kontrollpanelet (glidebrytere)
+        // Bygg glidebrytere
         const controlsDiv = document.getElementById('controls');
         for (const [key, data] of Object.entries(elements)) {
             const group = document.createElement('div');
@@ -108,7 +108,6 @@
             `;
             controlsDiv.appendChild(group);
 
-            // Legg til hendelse når brukeren drar i bryteren
             document.getElementById(key).addEventListener('input', function(e) {
                 elements[key].value = parseFloat(e.target.value);
                 document.getElementById(`${key}-val`).innerText = elements[key].value.toFixed(key === 'C' ? 2 : 1);
@@ -116,37 +115,89 @@
             });
         }
 
-        // Funksjon for å regne om til Canvas-koordinater
         function getCoords(crEq, niEq) {
             const x = margin + (crEq / maxCr) * plotWidth;
             const y = canvas.height - margin - (niEq / maxNi) * plotHeight;
             return { x, y };
         }
 
-        // Tegn rutenett og akser
-        function drawGrid() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Hjelpefunksjon for å tegne en region
+        function drawRegion(points, color, labelText, labelCr, labelNi) {
+            ctx.beginPath();
+            const start = getCoords(points[0].x, points[0].y);
+            ctx.moveTo(start.x, start.y);
             
+            for(let i = 1; i < points.length; i++) {
+                const pt = getCoords(points[i].x, points[i].y);
+                ctx.lineTo(pt.x, pt.y);
+            }
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.strokeStyle = "rgba(0,0,0,0.3)";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Legg til tekstetikett hvis angitt
+            if(labelText) {
+                const textPos = getCoords(labelCr, labelNi);
+                ctx.fillStyle = "#333";
+                ctx.font = "bold 16px Arial";
+                ctx.fillText(labelText, textPos.x, textPos.y);
+            }
+        }
+
+        // Tegn fasedelingene (Tilnærmet Schaeffler-geometri)
+        function drawPhases() {
+            // Austenitt (A) - Rødlig
+            const aPoints = [
+                {x: 0, y: 30}, {x: 40, y: 30}, {x: 40, y: 24}, 
+                {x: 16, y: 12}, {x: 0, y: 16}
+            ];
+            drawRegion(aPoints, "rgba(255, 180, 180, 0.4)", "Austenitt (A)", 15, 25);
+
+            // Ferritt (F) - Grønnlig
+            const fPoints = [
+                {x: 18, y: 0}, {x: 24, y: 6}, {x: 40, y: 14}, {x: 40, y: 0}
+            ];
+            drawRegion(fPoints, "rgba(180, 255, 180, 0.4)", "Ferritt (F)", 30, 4);
+
+            // Martensitt (M) - Blålig
+            const mPoints = [
+                {x: 0, y: 0}, {x: 12, y: 0}, {x: 9, y: 3}, {x: 0, y: 11}
+            ];
+            drawRegion(mPoints, "rgba(180, 200, 255, 0.4)", "Martensitt (M)", 2, 4);
+
+            // Etiketter for blandområder (uten bakgrunnsfarge)
+            ctx.fillStyle = "#555";
+            ctx.font = "italic 14px Arial";
+            const am = getCoords(5, 13); ctx.fillText("A + M", am.x, am.y);
+            const af = getCoords(28, 17); ctx.fillText("A + F", af.x, af.y);
+            const mf = getCoords(14, 2); ctx.fillText("M + F", mf.x, mf.y);
+            const amf = getCoords(14, 8); ctx.fillText("A + M + F", amf.x, amf.y);
+        }
+
+        function drawGrid() {
             ctx.strokeStyle = "#e0e0e0";
             ctx.lineWidth = 1;
             ctx.font = "12px Arial";
             ctx.fillStyle = "#666";
 
-            // X-akse (Cr) rutenett
+            // X-akse
             for (let i = 0; i <= maxCr; i += 5) {
                 const x = margin + (i / maxCr) * plotWidth;
                 ctx.beginPath(); ctx.moveTo(x, margin); ctx.lineTo(x, canvas.height - margin); ctx.stroke();
                 ctx.fillText(i, x - 5, canvas.height - margin + 15);
             }
 
-            // Y-akse (Ni) rutenett
+            // Y-akse
             for (let i = 0; i <= maxNi; i += 5) {
                 const y = canvas.height - margin - (i / maxNi) * plotHeight;
                 ctx.beginPath(); ctx.moveTo(margin, y); ctx.lineTo(canvas.width - margin, y); ctx.stroke();
-                if (i > 0) ctx.fillText(i, margin - 25, y + 4);
+                if (i > 0) ctx.fillText(i, margin - 20, y + 4);
             }
 
-            // Akselinjer
+            // Hovedakser
             ctx.strokeStyle = "#000";
             ctx.lineWidth = 2;
             ctx.beginPath();
@@ -155,11 +206,10 @@
             ctx.lineTo(canvas.width - margin, canvas.height - margin);
             ctx.stroke();
 
-            // Etiketter
+            // Aksetitler
             ctx.fillStyle = "black";
             ctx.font = "bold 14px Arial";
-            ctx.fillText("Kromekvivalent (Cr ekv)", canvas.width / 2 - 60, canvas.height - 5);
-            
+            ctx.fillText("Kromekvivalent (Cr ekv)", canvas.width / 2 - 60, canvas.height - 10);
             ctx.save();
             ctx.translate(15, canvas.height / 2 + 60);
             ctx.rotate(-Math.PI / 2);
@@ -168,33 +218,36 @@
         }
 
         function updateDiagram() {
-            // 1. Beregn ekvivalenter
+            // Beregn ekvivalenter
             const crEq = elements.Cr.value + elements.Mo.value + 1.5 * elements.Si.value;
             const niEq = elements.Ni.value + 30 * elements.C.value + 0.5 * elements.Mn.value;
 
-            // Oppdater tekst i resultatboksen
             document.getElementById('crEqOut').innerText = crEq.toFixed(2);
             document.getElementById('niEqOut').innerText = niEq.toFixed(2);
 
-            // 2. Tegn diagram på nytt
+            // Tøm canvas og tegn alt på nytt
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawPhases();
             drawGrid();
 
-            // 3. Plott punktet
+            // Plott resultatet
             const coords = getCoords(crEq, niEq);
-            
-            // Punktet
             ctx.beginPath();
             ctx.arc(coords.x, coords.y, 8, 0, 2 * Math.PI);
-            ctx.fillStyle = "#e74c3c"; // Rødfarge
+            ctx.fillStyle = "#e74c3c";
             ctx.fill();
             ctx.lineWidth = 2;
-            ctx.strokeStyle = "#c0392b"; // Mørkere rød kant
+            ctx.strokeStyle = "#c0392b";
             ctx.stroke();
 
-            // Tekst ved siden av punktet
+            // Etikett ved siden av punktet
             ctx.fillStyle = "#000";
-            ctx.font = "bold 12px Arial";
-            ctx.fillText(`(${crEq.toFixed(1)}, ${niEq.toFixed(1)})`, coords.x + 12, coords.y - 12);
+            ctx.font = "bold 13px Arial";
+            
+            // Juster tekstposisjon hvis den er nær høyre kant
+            let textX = coords.x + 12;
+            if(crEq > 35) textX = coords.x - 70;
+            ctx.fillText(`(${crEq.toFixed(1)}, ${niEq.toFixed(1)})`, textX, coords.y - 12);
         }
 
         // Kjør første gang

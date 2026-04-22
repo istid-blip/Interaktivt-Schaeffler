@@ -173,20 +173,19 @@
             const l_a_end = getCoords(26.0, 4.5); ctx.lineTo(l_a_end.x, l_a_end.y); ctx.stroke();
 
 
-            // --- FERRITTLINJER (De tynne linjene) ---
+// --- FERRITTLINJER (De tynne linjene) ---
             ctx.lineWidth = 1;
             ctx.font = "13px Arial";
             
-const ferriteLines = [
-                // 0% er nå forlenget matematisk helt ned til X-aksen (Ni = 0)
-                { startCr: 3.77,  startNi: 0,     endCr: 32.0, endNi: 28.0, label: "0% Ferrit", labelCr: 28.5, labelNi: 25.0 },
-                { startCr: 15.5,  startNi: 9.6,   endCr: 34.0, endNi: 26.3, label: "5%",        labelCr: 29.5, labelNi: 22.7 },
-                { startCr: 14.9,  startNi: 8.0,   endCr: 36.0, endNi: 27.0, label: "10%",       labelCr: 31.0, labelNi: 22.8 },
-                { startCr: 14.2,  startNi: 6.0,   endCr: 38.0, endNi: 24.0, label: "20%",       labelCr: 33.0, labelNi: 20.5 },
-                { startCr: 13.5,  startNi: 4.3,   endCr: 40.0, endNi: 19.9, label: "40%",       labelCr: 34.5, labelNi: 17.0 },
-                { startCr: 12.8,  startNi: 2.1,   endCr: 40.0, endNi: 13.8, label: "80%",       labelCr: 35.5, labelNi: 12.3 },
-                // 100% er også trukket ned til X-aksen (Ni = 0)
-                { startCr: 12.0,  startNi: 0,     endCr: 40.0, endNi: 9.0,  label: "100%",      labelCr: 36.5, labelNi: 8.5 }
+            // Matematisk beregnede linjer som går helt ned til X-aksen (Y=0)
+            const ferriteLines = [
+                { startCr: 7.0,  startNi: 0, endCr: 28.7, endNi: 30.0, label: "0% Ferrit", labelCr: 25.0, labelNi: 24.8 },
+                { startCr: 7.8,  startNi: 0, endCr: 30.7, endNi: 30.0, label: "5%",        labelCr: 27.0, labelNi: 25.1 },
+                { startCr: 8.8,  startNi: 0, endCr: 32.8, endNi: 30.0, label: "10%",       labelCr: 29.0, labelNi: 25.3 },
+                { startCr: 9.8,  startNi: 0, endCr: 36.5, endNi: 30.0, label: "20%",       labelCr: 31.0, labelNi: 23.9 },
+                { startCr: 10.5, startNi: 0, endCr: 40.0, endNi: 26.6, label: "40%",       labelCr: 33.0, labelNi: 20.3 },
+                { startCr: 11.5, startNi: 0, endCr: 40.0, endNi: 18.6, label: "80%",       labelCr: 34.0, labelNi: 14.7 },
+                { startCr: 12.0, startNi: 0, endCr: 40.0, endNi: 9.0,  label: "100%",      labelCr: 36.0, labelNi: 7.7 }
             ];
 
             ferriteLines.forEach(line => {

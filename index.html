@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <title>Schaeffler Diagram Canvas</title>
+    <style>
+        canvas {
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Schaeffler Diagram Plotter</h2>
+    <canvas id="schaefflerCanvas" width="600" height="400"></canvas>
+
+    <script>
+        const canvas = document.getElementById('schaefflerCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Oppsett av dimensjoner og marginer
+        const margin = 50;
+        const width = canvas.width - margin * 2;
+        const height = canvas.height - margin * 2;
+
+        // Maksverdier for aksene
+        const maxCrEq = 40;
+        const maxNiEq = 30;
+
+        // Hjelpefunksjon for å konvertere (Cr_eq, Ni_eq) til (X, Y) på canvas
+        function getCanvasCoords(crEq, niEq) {
+            const x = margin + (crEq / maxCrEq) * width;
+            const y = canvas.height - margin - (niEq / maxNiEq) * height;
+            return { x, y };
+        }
+
+        // Tegn akser
+        function drawAxes() {
+            ctx.beginPath();
+            ctx.moveTo(margin, margin);
+            ctx.lineTo(margin, canvas.height - margin);
+            ctx.lineTo(canvas.width - margin, canvas.height - margin);
+            ctx.stroke();
+
+            // Etiketter
+            ctx.font = "14px Arial";
+            ctx.fillStyle = "black";
+            ctx.fillText("Kromekvivalent (Cr_eq)", canvas.width / 2 - 50, canvas.height - 15);
+            ctx.save();
+            ctx.translate(20, canvas.height / 2 + 50);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText("Nikkelekvivalent (Ni_eq)", 0, 0);
+            ctx.restore();
+        }
+
+        // Funksjon for å plotte en spesifikk legering
+        function plotAlloy(cr, ni, mo, si, c, mn) {
+            // Beregner ekvivalenter
+            const crEq = cr + mo + 1.5 * si; // ignorerer Nb her for enkelhets skyld
+            const niEq = ni + 30 * c + 0.5 * mn;
+
+            const coords = getCanvasCoords(crEq, niEq);
+
+            // Tegn punktet
+            ctx.beginPath();
+            ctx.arc(coords.x, coords.y, 6, 0, 2 * Math.PI);
+            ctx.fillStyle = "red";
+            ctx.fill();
+            ctx.stroke();
+
+            // Legg til tekst
+            ctx.fillStyle = "black";
+            ctx.fillText(`(${crEq.toFixed(1)}, ${niEq.toFixed(1)})`, coords.x + 10, coords.y - 10);
+        }
+
+        // Initier tegningen
+        drawAxes();
+        
+        // Eksempel: Plott standard 304 Rustfritt Stål (Ca. 18% Cr, 8% Ni, 0.08% C)
+        plotAlloy(18, 8, 0, 0.5, 0.08, 1.5); 
+
+    </script>
+</body>
+</html>

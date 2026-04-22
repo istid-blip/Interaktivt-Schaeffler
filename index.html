@@ -165,35 +165,41 @@
             ctx.beginPath(); const afStart2 = getCoords(0, 25.4); ctx.moveTo(afStart2.x, afStart2.y);
             const afEnd2 = getCoords(18, 10); ctx.lineTo(afEnd2.x, afEnd2.y); ctx.stroke();
 
-            // Linjer for konstant ferritt-innhold
+// Linjer for konstant ferritt-innhold
             ctx.lineWidth = 1;
-            ctx.font = "11px Arial";
-            const ferriteLines = [
-                { startCr: 14, endCr: 40, endNi: 14, label: "0% Ferritt", labelCr: 28, labelNi: 20 },
-                { startCr: 16, endCr: 40, endNi: 10, label: "5% Ferritt", labelCr: 28, labelNi: 15 },
-                { startCr: 18, endCr: 40, endNi: 7, label: "10% Ferritt", labelCr: 28, labelNi: 11 },
-                { startCr: 20.5, endCr: 40, endNi: 4, label: "20% Ferritt", labelCr: 28, labelNi: 7 },
-                { startCr: 24, endCr: 40, endNi: 1.8, label: "40% Ferritt", labelCr: 28, labelNi: 3.5 },
-                { startCr: 28.5, endCr: 40, endNi: 0, label: "80% Ferritt", labelCr: 32.5, labelNi: 0.8 },
-                { startCr: 36, endCr: 40, endNi: 0, label: "100% Ferritt", labelCr: 37, labelNi: 0.4 }
+            ctx.font = "12px Arial";
+            
+            // NÅ MED BÅDE startCr OG startNi for full kontroll
+const ferriteLines = [
+                { startCr: 18.5, startNi: 11.0, endCr: 30.5, endNi: 30, label: "0% Ferrit", labelCr: 26, labelNi: 22.8 },
+                { startCr: 19.0, startNi: 10.0, endCr: 33.5, endNi: 30, label: "5%", labelCr: 28, labelNi: 22.0 },
+                { startCr: 19.5, startNi: 9.5,  endCr: 38.0, endNi: 30, label: "10%", labelCr: 30, labelNi: 21.0 },
+                { startCr: 20.5, startNi: 8.5,  endCr: 40.0, endNi: 28, label: "20%", labelCr: 31, labelNi: 19.5 },
+                { startCr: 21.5, startNi: 6.5,  endCr: 40.0, endNi: 23, label: "40%", labelCr: 33, labelNi: 16.5 },
+                { startCr: 23.0, startNi: 5.0,  endCr: 40.0, endNi: 14.5, label: "80%", labelCr: 34, labelNi: 11.2 },
+                { startCr: 26.0, startNi: 4.2,  endCr: 40.0, endNi: 8.5, label: "100%", labelCr: 36, labelNi: 7.2 }
+                
+                // EKSEMPEL: Slik legger du til en ny linje som starter høyere oppe:
+                // { startCr: 12, startNi: 5, endCr: 30, endNi: 25, label: "Ny linje", labelCr: 20, labelNi: 15 }
             ];
 
             ferriteLines.forEach(line => {
                 ctx.beginPath();
-                const start = getCoords(line.startCr, 0);
+                // Nå bruker vi line.startNi i stedet for bare 0
+                const start = getCoords(line.startCr, line.startNi);
                 const end = getCoords(line.endCr, line.endNi);
                 ctx.moveTo(start.x, start.y);
                 ctx.lineTo(end.x, end.y);
                 ctx.stroke();
-
-                // Etikett for ferritt-prosent
+                
+// Plasserer teksten i samme vinkel som strekene
                 const labelPos = getCoords(line.labelCr, line.labelNi);
                 ctx.save();
                 ctx.translate(labelPos.x, labelPos.y);
                 const angle = Math.atan2(end.y - start.y, end.x - start.x);
                 ctx.rotate(angle);
                 ctx.fillStyle = "#333";
-                ctx.fillText(line.label, 0, -4);
+                ctx.fillText(line.label, 0, -5);
                 ctx.restore();
             });
         }

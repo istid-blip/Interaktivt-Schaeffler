@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 850px;
+            max-width: 900px;
             margin: 20px auto;
             padding: 20px;
             background-color: #f4f4f9;
@@ -24,11 +24,11 @@
         }
         .controls {
             flex: 1;
-            min-width: 250px;
+            min-width: 280px;
         }
         .canvas-container {
             flex: 2;
-            min-width: 450px;
+            min-width: 480px;
         }
         canvas {
             background-color: #fff;
@@ -61,18 +61,18 @@
 <body>
 
     <h2>Interaktivt Schaeffler-diagram</h2>
-    <p>Juster legeringselementene for å se fasestrukturen endre seg. Fargekodene viser de rene faseområdene.</p>
+    <p>Juster legeringselementene for å se fasestrukturen. Diagrammet er i sort-hvitt med linjer for konstant ferritt-innhold.</p>
 
     <div class="container">
         <div class="controls" id="controls">
             </div>
 
         <div class="canvas-container">
-            <canvas id="schaefflerCanvas" width="600" height="450"></canvas>
+            <canvas id="schaefflerCanvas" width="650" height="500"></canvas>
             
             <div class="results">
-                <strong>Kromekvivalent (Cr<sub>eq</sub>): </strong> <span id="crEqOut">0.0</span><br>
-                <strong>Nikkelekvivalent (Ni<sub>eq</sub>): </strong> <span id="niEqOut">0.0</span>
+                <strong>Kromekvivalent (Cr<sub>ekv</sub>): </strong> <span id="crEqOut">0.0</span><br>
+                <strong>Nikkelekvivalent (Ni<sub>ekv</sub>): </strong> <span id="niEqOut">0.0</span>
             </div>
         </div>
     </div>
@@ -81,19 +81,20 @@
         const canvas = document.getElementById('schaefflerCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Startverdier (Typisk 304 Austenittisk)
+        // Startverdier (Typisk 304 Austenittisk) + Niob (Nb)
         const elements = {
             Cr: { value: 18.0, min: 0, max: 40, step: 0.1 },
             Ni: { value: 8.0, min: 0, max: 30, step: 0.1 },
             Mo: { value: 0.0, min: 0, max: 10, step: 0.1 },
             Si: { value: 0.5, min: 0, max: 5, step: 0.1 },
             C:  { value: 0.08, min: 0, max: 1.0, step: 0.01 },
-            Mn: { value: 1.5, min: 0, max: 10, step: 0.1 }
+            Mn: { value: 1.5, min: 0, max: 10, step: 0.1 },
+            Nb: { value: 0.0, min: 0, max: 2.0, step: 0.01 } // Nytt element: Niob
         };
 
         const maxCr = 40;
         const maxNi = 30;
-        const margin = 50;
+        const margin = 60;
         const plotWidth = canvas.width - margin * 2;
         const plotHeight = canvas.height - margin * 2;
 
@@ -110,7 +111,8 @@
 
             document.getElementById(key).addEventListener('input', function(e) {
                 elements[key].value = parseFloat(e.target.value);
-                document.getElementById(`${key}-val`).innerText = elements[key].value.toFixed(key === 'C' ? 2 : 1);
+                const decimalPlaces = (key === 'C' || key === 'Nb') ? 2 : 1;
+                document.getElementById(`${key}-val`).innerText = elements[key].value.toFixed(decimalPlaces);
                 updateDiagram();
             });
         }
@@ -121,60 +123,79 @@
             return { x, y };
         }
 
-        // Hjelpefunksjon for å tegne en region
-        function drawRegion(points, color, labelText, labelCr, labelNi) {
-            ctx.beginPath();
-            const start = getCoords(points[0].x, points[0].y);
-            ctx.moveTo(start.x, start.y);
-            
-            for(let i = 1; i < points.length; i++) {
-                const pt = getCoords(points[i].x, points[i].y);
-                ctx.lineTo(pt.x, pt.y);
-            }
-            ctx.closePath();
-            ctx.fillStyle = color;
-            ctx.fill();
-            ctx.strokeStyle = "rgba(0,0,0,0.3)";
-            ctx.lineWidth = 1;
-            ctx.stroke();
-
-            // Legg til tekstetikett hvis angitt
-            if(labelText) {
-                const textPos = getCoords(labelCr, labelNi);
-                ctx.fillStyle = "#333";
-                ctx.font = "bold 16px Arial";
-                ctx.fillText(labelText, textPos.x, textPos.y);
-            }
-        }
-
-        // Tegn fasedelingene (Tilnærmet Schaeffler-geometri)
+        // Tegn fasedelingene (Tilnærmet Schaeffler-geometri) og konstant ferrittlinjer
         function drawPhases() {
-            // Austenitt (A) - Rødlig
-            const aPoints = [
-                {x: 0, y: 30}, {x: 40, y: 30}, {x: 40, y: 24}, 
-                {x: 16, y: 12}, {x: 0, y: 16}
-            ];
-            drawRegion(aPoints, "rgba(255, 180, 180, 0.4)", "Austenitt (A)", 15, 25);
+            ctx.strokeStyle = "#000";
+            ctx.lineWidth = 1;
+            ctx.fillStyle = "#333";
+            ctx.font = "bold 15px Arial";
 
-            // Ferritt (F) - Grønnlig
-            const fPoints = [
-                {x: 18, y: 0}, {x: 24, y: 6}, {x: 40, y: 14}, {x: 40, y: 0}
-            ];
-            drawRegion(fPoints, "rgba(180, 255, 180, 0.4)", "Ferritt (F)", 30, 4);
+            // Faseetiketter (plassert presist)
+            const aPos = getCoords(17, 22); ctx.fillText("Austenitt", aPos.x, aPos.y);
+            const mPos = getCoords(2, 6); ctx.fillText("Martensitt", mPos.x, mPos.y);
+            const fPos = getCoords(32, 2); ctx.fillText("Ferritt", fPos.x, fPos.y);
 
-            // Martensitt (M) - Blålig
-            const mPoints = [
-                {x: 0, y: 0}, {x: 12, y: 0}, {x: 9, y: 3}, {x: 0, y: 11}
-            ];
-            drawRegion(mPoints, "rgba(180, 200, 255, 0.4)", "Martensitt (M)", 2, 4);
+            // Mixed Phases
+            ctx.font = "italic 13px Arial";
+            const amPos = getCoords(4, 15); ctx.fillText("A+M", amPos.x, amPos.y);
+            const mfPos = getCoords(13, 2); ctx.fillText("M+F", mfPos.x, mfPos.y);
+            const afPos = getCoords(26, 15); ctx.fillText("A+F", afPos.x, afPos.y);
+            const amfPos = getCoords(13, 7); ctx.fillText("A+M+F", amfPos.x, amfPos.y);
+            const fmPos = getCoords(1, 1); ctx.fillText("F+M", fmPos.x, fmPos.y); // Liten region nede til venstre
 
-            // Etiketter for blandområder (uten bakgrunnsfarge)
-            ctx.fillStyle = "#555";
-            ctx.font = "italic 14px Arial";
-            const am = getCoords(5, 13); ctx.fillText("A + M", am.x, am.y);
-            const af = getCoords(28, 17); ctx.fillText("A + F", af.x, af.y);
-            const mf = getCoords(14, 2); ctx.fillText("M + F", mf.x, mf.y);
-            const amf = getCoords(14, 8); ctx.fillText("A + M + F", amf.x, amf.y);
+            // Tegn linjer for fasedelingene (kopiert fra diagrammet ditt)
+            ctx.lineWidth = 1.5;
+
+            // Martensitt-grense
+            ctx.beginPath(); const mStart = getCoords(0, 8); ctx.moveTo(mStart.x, mStart.y);
+            const mEnd = getCoords(2.2, 0); ctx.lineTo(mEnd.x, mEnd.y); ctx.stroke();
+
+            // M+F, A+M+F grenser
+            ctx.beginPath(); const amfStart = getCoords(0, 0); ctx.moveTo(amfStart.x, amfStart.y);
+            const amfMid1 = getCoords(9, 3); ctx.lineTo(amfMid1.x, amfMid1.y); 
+            const amfMid2 = getCoords(12, 0); ctx.lineTo(amfMid2.x, amfMid2.y); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(amfMid1.x, amfMid1.y); 
+            const amfEnd = getCoords(16, 4); ctx.lineTo(amfEnd.x, amfEnd.y); ctx.stroke();
+
+            // A+M grense
+            ctx.beginPath(); const amStart2 = getCoords(0, 19); ctx.moveTo(amStart2.x, amStart2.y);
+            const amEnd2 = getCoords(13.8, 5.2); ctx.lineTo(amEnd2.x, amEnd2.y); ctx.stroke();
+
+            // A+F grense
+            ctx.beginPath(); const afStart2 = getCoords(0, 25.4); ctx.moveTo(afStart2.x, afStart2.y);
+            const afEnd2 = getCoords(18, 10); ctx.lineTo(afEnd2.x, afEnd2.y); ctx.stroke();
+
+            // Linjer for konstant ferritt-innhold
+            ctx.lineWidth = 1;
+            ctx.font = "11px Arial";
+            const ferriteLines = [
+                { startCr: 14, endCr: 40, endNi: 14, label: "0% Ferritt", labelCr: 28, labelNi: 20 },
+                { startCr: 16, endCr: 40, endNi: 10, label: "5% Ferritt", labelCr: 28, labelNi: 15 },
+                { startCr: 18, endCr: 40, endNi: 7, label: "10% Ferritt", labelCr: 28, labelNi: 11 },
+                { startCr: 20.5, endCr: 40, endNi: 4, label: "20% Ferritt", labelCr: 28, labelNi: 7 },
+                { startCr: 24, endCr: 40, endNi: 1.8, label: "40% Ferritt", labelCr: 28, labelNi: 3.5 },
+                { startCr: 28.5, endCr: 40, endNi: 0, label: "80% Ferritt", labelCr: 32.5, labelNi: 0.8 },
+                { startCr: 36, endCr: 40, endNi: 0, label: "100% Ferritt", labelCr: 37, labelNi: 0.4 }
+            ];
+
+            ferriteLines.forEach(line => {
+                ctx.beginPath();
+                const start = getCoords(line.startCr, 0);
+                const end = getCoords(line.endCr, line.endNi);
+                ctx.moveTo(start.x, start.y);
+                ctx.lineTo(end.x, end.y);
+                ctx.stroke();
+
+                // Etikett for ferritt-prosent
+                const labelPos = getCoords(line.labelCr, line.labelNi);
+                ctx.save();
+                ctx.translate(labelPos.x, labelPos.y);
+                const angle = Math.atan2(end.y - start.y, end.x - start.x);
+                ctx.rotate(angle);
+                ctx.fillStyle = "#333";
+                ctx.fillText(line.label, 0, -4);
+                ctx.restore();
+            });
         }
 
         function drawGrid() {
@@ -206,20 +227,25 @@
             ctx.lineTo(canvas.width - margin, canvas.height - margin);
             ctx.stroke();
 
-            // Aksetitler
+            // Aksetitler og formler fra diagrammet ditt
             ctx.fillStyle = "black";
             ctx.font = "bold 14px Arial";
-            ctx.fillText("Kromekvivalent (Cr ekv)", canvas.width / 2 - 60, canvas.height - 10);
+            // Oppdatert formel for Kromekvivalent (inkl Nb)
+            ctx.fillText("Kromekvivalent = % Cr + % Mo + 1,5 x % Si + 0,5 x % Nb", canvas.width / 2 - 170, canvas.height - 10);
             ctx.save();
-            ctx.translate(15, canvas.height / 2 + 60);
+            ctx.translate(15, canvas.height / 2 + 100);
             ctx.rotate(-Math.PI / 2);
-            ctx.fillText("Nikkelekvivalent (Ni ekv)", 0, 0);
+            ctx.fillText("Nikkelekvivalent = % Ni + 30 x % C + 0,5 x % Mn", 0, 0);
             ctx.restore();
+
+            // Diagramtittel
+            ctx.font = "bold 16px Arial";
+            ctx.fillText("Schaeffler-diagram", canvas.width / 2 - 80, 20);
         }
 
         function updateDiagram() {
-            // Beregn ekvivalenter
-            const crEq = elements.Cr.value + elements.Mo.value + 1.5 * elements.Si.value;
+            // Beregn ekvivalenter (inkludert Nb)
+            const crEq = elements.Cr.value + elements.Mo.value + 1.5 * elements.Si.value + 0.5 * elements.Nb.value;
             const niEq = elements.Ni.value + 30 * elements.C.value + 0.5 * elements.Mn.value;
 
             document.getElementById('crEqOut').innerText = crEq.toFixed(2);
@@ -227,17 +253,17 @@
 
             // Tøm canvas og tegn alt på nytt
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawPhases();
-            drawGrid();
+            drawPhases(); // Først fasedelinger (sorte linjer)
+            drawGrid(); // Så akser og tittel
 
-            // Plott resultatet
+            // Plott resultatet (rødt punkt)
             const coords = getCoords(crEq, niEq);
             ctx.beginPath();
             ctx.arc(coords.x, coords.y, 8, 0, 2 * Math.PI);
-            ctx.fillStyle = "#e74c3c";
+            ctx.fillStyle = "#e74c3c"; // Rød farge for punktet
             ctx.fill();
             ctx.lineWidth = 2;
-            ctx.strokeStyle = "#c0392b";
+            ctx.strokeStyle = "#c0392b"; // Mørkere rød kant
             ctx.stroke();
 
             // Etikett ved siden av punktet

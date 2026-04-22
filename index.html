@@ -155,7 +155,8 @@
             // 1. F+M grense nede til venstre
             ctx.beginPath(); const l_e_start = getCoords(0, 8); ctx.moveTo(l_e_start.x, l_e_start.y);
             const l_e_end = getCoords(2.2, 0); ctx.lineTo(l_e_end.x, l_e_end.y); ctx.stroke();
-// 2. Austenit / A+F (Den øverste lange skrålinjen)
+            
+            // 2. Austenit / A+F (Den øverste lange skrålinjen)
             ctx.beginPath(); const l_a_start = getCoords(0, 25.5); ctx.moveTo(l_a_start.x, l_a_start.y);
             const l_a_end = getCoords(26.0, 4.5); ctx.lineTo(l_a_end.x, l_a_end.y); ctx.stroke();
 
@@ -163,15 +164,7 @@
             ctx.beginPath(); const l_b_start = getCoords(0, 19.5); ctx.moveTo(l_b_start.x, l_b_start.y);
             const l_b_end = getCoords(13.32, 8.74); ctx.lineTo(l_b_end.x, l_b_end.y); ctx.stroke();
 
-            // 4. M / M+F grense (Kommer fra bunnen, STOPPER ved samme A+M+F hjørne!)
-            ctx.beginPath(); const l_c_start = getCoords(8, 0); ctx.moveTo(l_c_start.x, l_c_start.y);
-            const l_c_end = getCoords(13.32, 8.74); ctx.lineTo(l_c_end.x, l_c_end.y); ctx.stroke();
-
-            // 5. M+F / A+M+F grense (Bunnlinjen til selve A+M+F trekanten)
-            ctx.beginPath(); ctx.moveTo(l_c_end.x, l_c_end.y); 
-            ctx.lineTo(l_a_end.x, l_a_end.y); ctx.stroke();
-
-            // 6. Bunnlinjen mot Ferrit
+            // 4. Bunnlinjen mot Ferrit
             ctx.beginPath(); const l_d_start = getCoords(12, 0); ctx.moveTo(l_d_start.x, l_d_start.y);
             const l_d_end = getCoords(40, 9.0); ctx.lineTo(l_d_end.x, l_d_end.y); ctx.stroke();
 

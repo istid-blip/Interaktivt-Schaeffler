@@ -123,82 +123,86 @@
             return { x, y };
         }
 
-        // Tegn fasedelingene (Tilnærmet Schaeffler-geometri) og konstant ferrittlinjer
+// Tegn fasedelingene (Beregnet nøyaktig fra originaldiagrammet)
         function drawPhases() {
             ctx.strokeStyle = "#000";
             ctx.lineWidth = 1;
             ctx.fillStyle = "#333";
+            
+            // --- FASEETIKETTER ---
             ctx.font = "bold 15px Arial";
+            const aPos = getCoords(16, 22); ctx.fillText("Austenit", aPos.x, aPos.y);
+            const mPos = getCoords(4, 8); ctx.fillText("Martensit", mPos.x, mPos.y);
+            const fPos = getCoords(34, 2.5); ctx.fillText("Ferrit", fPos.x, fPos.y);
 
-            // Faseetiketter (plassert presist)
-            const aPos = getCoords(17, 22); ctx.fillText("Austenitt", aPos.x, aPos.y);
-            const mPos = getCoords(2, 6); ctx.fillText("Martensitt", mPos.x, mPos.y);
-            const fPos = getCoords(32, 2); ctx.fillText("Ferritt", fPos.x, fPos.y);
+            ctx.font = "14px Arial";
+            const amPos = getCoords(6, 16); ctx.fillText("A + M", amPos.x, amPos.y);
+            const mfPos = getCoords(13, 2.5); ctx.fillText("M + F", mfPos.x, mfPos.y);
+            const afPos = getCoords(27, 13); ctx.fillText("A + F", afPos.x, afPos.y);
+            const amfPos = getCoords(18, 7); ctx.fillText("A+M+F", amfPos.x, amfPos.y);
+            
+            // F + M er rotert på høykant
+            ctx.save();
+            const fmPos = getCoords(1.5, 2); 
+            ctx.translate(fmPos.x, fmPos.y);
+            ctx.rotate(Math.PI / 2);
+            ctx.fillText("F + M", 0, 0); 
+            ctx.restore();
 
-            // Mixed Phases
-            ctx.font = "italic 13px Arial";
-            const amPos = getCoords(4, 15); ctx.fillText("A+M", amPos.x, amPos.y);
-            const mfPos = getCoords(13, 2); ctx.fillText("M+F", mfPos.x, mfPos.y);
-            const afPos = getCoords(26, 15); ctx.fillText("A+F", afPos.x, afPos.y);
-            const amfPos = getCoords(13, 7); ctx.fillText("A+M+F", amfPos.x, amfPos.y);
-            const fmPos = getCoords(1, 1); ctx.fillText("F+M", fmPos.x, fmPos.y); // Liten region nede til venstre
-
-            // Tegn linjer for fasedelingene (kopiert fra diagrammet ditt)
+            // --- HOVEDGRENSER (De tykke linjene) ---
             ctx.lineWidth = 1.5;
 
-            // Martensitt-grense
-            ctx.beginPath(); const mStart = getCoords(0, 8); ctx.moveTo(mStart.x, mStart.y);
-            const mEnd = getCoords(2.2, 0); ctx.lineTo(mEnd.x, mEnd.y); ctx.stroke();
+            // 1. F+M grense nede til venstre
+            ctx.beginPath(); const l_e_start = getCoords(0, 8); ctx.moveTo(l_e_start.x, l_e_start.y);
+            const l_e_end = getCoords(2.2, 0); ctx.lineTo(l_e_end.x, l_e_end.y); ctx.stroke();
 
-            // M+F, A+M+F grenser
-            ctx.beginPath(); const amfStart = getCoords(0, 0); ctx.moveTo(amfStart.x, amfStart.y);
-            const amfMid1 = getCoords(9, 3); ctx.lineTo(amfMid1.x, amfMid1.y); 
-            const amfMid2 = getCoords(12, 0); ctx.lineTo(amfMid2.x, amfMid2.y); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(amfMid1.x, amfMid1.y); 
-            const amfEnd = getCoords(16, 4); ctx.lineTo(amfEnd.x, amfEnd.y); ctx.stroke();
+            // 2. Bunnlinjen (Grensen mot Ferrit, går tvers over)
+            ctx.beginPath(); const l_d_start = getCoords(12, 0); ctx.moveTo(l_d_start.x, l_d_start.y);
+            const l_d_end = getCoords(40, 9.0); ctx.lineTo(l_d_end.x, l_d_end.y); ctx.stroke();
 
-            // A+M grense
-            ctx.beginPath(); const amStart2 = getCoords(0, 19); ctx.moveTo(amStart2.x, amStart2.y);
-            const amEnd2 = getCoords(13.8, 5.2); ctx.lineTo(amEnd2.x, amEnd2.y); ctx.stroke();
+            // 3. M / M+F grense (Går fra X-aksen og opp i midten)
+            ctx.beginPath(); const l_c_start = getCoords(8, 0); ctx.moveTo(l_c_start.x, l_c_start.y);
+            const l_c_end = getCoords(16.25, 12.38); ctx.lineTo(l_c_end.x, l_c_end.y); ctx.stroke();
 
-            // A+F grense
-            ctx.beginPath(); const afStart2 = getCoords(0, 25.4); ctx.moveTo(afStart2.x, afStart2.y);
-            const afEnd2 = getCoords(18, 10); ctx.lineTo(afEnd2.x, afEnd2.y); ctx.stroke();
+            // 4. A+M / M grense (Den midtre skrålinjen)
+            ctx.beginPath(); const l_b_start = getCoords(0, 19.5); ctx.moveTo(l_b_start.x, l_b_start.y);
+            const l_b_end = getCoords(20.68, 2.78); ctx.lineTo(l_b_end.x, l_b_end.y); ctx.stroke();
 
-// Linjer for konstant ferritt-innhold
+            // 5. A / A+M grense (Den øverste skrålinjen)
+            ctx.beginPath(); const l_a_start = getCoords(0, 25.5); ctx.moveTo(l_a_start.x, l_a_start.y);
+            const l_a_end = getCoords(26.0, 4.5); ctx.lineTo(l_a_end.x, l_a_end.y); ctx.stroke();
+
+
+            // --- FERRITTLINJER (De tynne linjene) ---
             ctx.lineWidth = 1;
-            ctx.font = "12px Arial";
+            ctx.font = "13px Arial";
             
-            // NÅ MED BÅDE startCr OG startNi for full kontroll
-const ferriteLines = [
-                { startCr: 18.5, startNi: 11.0, endCr: 30.5, endNi: 30, label: "0% Ferrit", labelCr: 26, labelNi: 22.8 },
-                { startCr: 19.0, startNi: 10.0, endCr: 33.5, endNi: 30, label: "5%", labelCr: 28, labelNi: 22.0 },
-                { startCr: 19.5, startNi: 9.5,  endCr: 38.0, endNi: 30, label: "10%", labelCr: 30, labelNi: 21.0 },
-                { startCr: 20.5, startNi: 8.5,  endCr: 40.0, endNi: 28, label: "20%", labelCr: 31, labelNi: 19.5 },
-                { startCr: 21.5, startNi: 6.5,  endCr: 40.0, endNi: 23, label: "40%", labelCr: 33, labelNi: 16.5 },
-                { startCr: 23.0, startNi: 5.0,  endCr: 40.0, endNi: 14.5, label: "80%", labelCr: 34, labelNi: 11.2 },
-                { startCr: 26.0, startNi: 4.2,  endCr: 40.0, endNi: 8.5, label: "100%", labelCr: 36, labelNi: 7.2 }
-                
-                // EKSEMPEL: Slik legger du til en ny linje som starter høyere oppe:
-                // { startCr: 12, startNi: 5, endCr: 30, endNi: 25, label: "Ny linje", labelCr: 20, labelNi: 15 }
+            const ferriteLines = [
+                { startCr: 16.25, startNi: 12.38, endCr: 32.0, endNi: 28.0, label: "0% Ferrit", labelCr: 28.5, labelNi: 25.0 },
+                { startCr: 15.5,  startNi: 9.6,   endCr: 34.0, endNi: 26.3, label: "5%",        labelCr: 29.5, labelNi: 22.7 },
+                { startCr: 14.9,  startNi: 8.0,   endCr: 36.0, endNi: 27.0, label: "10%",       labelCr: 31.0, labelNi: 22.8 },
+                { startCr: 14.2,  startNi: 6.0,   endCr: 38.0, endNi: 24.0, label: "20%",       labelCr: 33.0, labelNi: 20.5 },
+                { startCr: 13.5,  startNi: 4.3,   endCr: 40.0, endNi: 19.9, label: "40%",       labelCr: 34.5, labelNi: 17.0 },
+                { startCr: 12.8,  startNi: 2.1,   endCr: 40.0, endNi: 13.8, label: "80%",       labelCr: 35.5, labelNi: 12.3 },
+                // 100% linjen tegnes over bunnlinjen (l_d)
+                { startCr: 26.0,  startNi: 4.5,   endCr: 40.0, endNi: 9.0,  label: "100%",      labelCr: 36.5, labelNi: 8.5 }
             ];
 
             ferriteLines.forEach(line => {
                 ctx.beginPath();
-                // Nå bruker vi line.startNi i stedet for bare 0
                 const start = getCoords(line.startCr, line.startNi);
                 const end = getCoords(line.endCr, line.endNi);
                 ctx.moveTo(start.x, start.y);
                 ctx.lineTo(end.x, end.y);
                 ctx.stroke();
-                
-// Plasserer teksten i samme vinkel som strekene
+
+                // Plasserer teksten i samme vinkel som strekene
                 const labelPos = getCoords(line.labelCr, line.labelNi);
                 ctx.save();
                 ctx.translate(labelPos.x, labelPos.y);
                 const angle = Math.atan2(end.y - start.y, end.x - start.x);
                 ctx.rotate(angle);
-                ctx.fillStyle = "#333";
+                ctx.fillStyle = "#000";
                 ctx.fillText(line.label, 0, -5);
                 ctx.restore();
             });

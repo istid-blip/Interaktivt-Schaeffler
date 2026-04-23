@@ -1,249 +1,316 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="no">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Interaktivt Schaeffler-diagram</title>
-  <style>
-    :root {
-      --bg: #f8fafc;
-      --card: #ffffff;
-      --text: #0f172a;
-      --muted: #475569;
-      --border: #e2e8f0;
-      --grid: #e5e7eb;
-      --axis: #0f172a;
-      --accent: #111827;
-      --accent-soft: rgba(17, 24, 39, 0.12);
-      --blue: rgba(59,130,246,0.18);
-      --blue-stroke: rgba(59,130,246,0.8);
-      --green: rgba(16,185,129,0.18);
-      --green-stroke: rgba(16,185,129,0.8);
-      --red: rgba(239,68,68,0.18);
-      --red-stroke: rgba(239,68,68,0.8);
-      --amber: rgba(245,158,11,0.18);
-      --amber-stroke: rgba(245,158,11,0.8);
-      --purple: rgba(168,85,247,0.16);
-      --purple-stroke: rgba(168,85,247,0.8);
-      --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-      --radius: 18px;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interaktivt Schaeffler-diagram</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .controls {
+            flex: 1;
+            min-width: 320px;
+        }
+        .canvas-container {
+            flex: 2;
+            min-width: 480px;
+        }
+        canvas {
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100%;
+            height: auto;
+        }
+        /* Nye stiler for formel-layouten */
+        .formula-group {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .formula-group h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+            color: #2c3e50;
+        }
+        .formula-line {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 1.05em;
+            line-height: 2;
+        }
+        .formula-line input[type="number"] {
+            width: 65px;
+            padding: 5px;
+            font-size: 1em;
+            border: 1px solid #bbb;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .formula-result {
+            margin-top: 10px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #e74c3c;
+            border-top: 1px dashed #ccc;
+            padding-top: 10px;
+        }
+    </style>
+</head>
+<body>
 
-    * { box-sizing: border-box; }
+    <h2>Interaktivt Schaeffler-diagram</h2>
+    <p>Skriv inn verdiene for legeringselementene direkte i formlene under for å se fasestrukturen.</p>
 
-    html, body {
-      margin: 0;
-      padding: 0;
-      font-family: Arial, Helvetica, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-    }
+    <div class="container">
+        <div class="controls" id="controls">
+            
+            <div class="formula-group">
+                <h3>Kromekvivalent (Cr<sub>ekv</sub>)</h3>
+                <div class="formula-line">
+                    <input type="number" id="Cr" value="18.0" step="0.1" min="0" max="40"> % Cr +
+                    <input type="number" id="Mo" value="0.0" step="0.1" min="0" max="10"> % Mo +
+                    1.5 &times; <input type="number" id="Si" value="0.5" step="0.1" min="0" max="5"> % Si +
+                    0.5 &times; <input type="number" id="Nb" value="0.0" step="0.01" min="0" max="2"> % Nb
+                </div>
+                <div class="formula-result">
+                    = <span id="crEqOut">0.00</span>
+                </div>
+            </div>
 
-    body {
-      padding: 24px;
-    }
+            <div class="formula-group">
+                <h3>Nikkelekvivalent (Ni<sub>ekv</sub>)</h3>
+                <div class="formula-line">
+                    <input type="number" id="Ni" value="8.0" step="0.1" min="0" max="30"> % Ni +
+                    30 &times; <input type="number" id="C" value="0.08" step="0.01" min="0" max="1"> % C +
+                    0.5 &times; <input type="number" id="Mn" value="1.5" step="0.1" min="0" max="10"> % Mn
+                </div>
+                <div class="formula-result">
+                    = <span id="niEqOut">0.00</span>
+                </div>
+            </div>
 
-    .container {
-      max-width: 1380px;
-      margin: 0 auto;
-    }
+        </div>
 
-    .header {
-      margin-bottom: 20px;
-    }
+        <div class="canvas-container">
+            <canvas id="schaefflerCanvas" width="650" height="500"></canvas>
+            </div>
+    </div>
 
-    .header h1 {
-      margin: 0 0 8px 0;
-      font-size: clamp(1.8rem, 2.6vw, 2.6rem);
-      line-height: 1.1;
-    }
+    <script>
+        const canvas = document.getElementById('schaefflerCanvas');
+        const ctx = canvas.getContext('2d');
 
-    .header p {
-      margin: 0;
-      color: var(--muted);
-      max-width: 980px;
-      line-height: 1.5;
-    }
+        // Verdiene oppbevares slik du hadde satt dem opp
+        const elements = {
+            Cr: { value: 18.0 },
+            Ni: { value: 8.0 },
+            Mo: { value: 0.0 },
+            Si: { value: 0.5 },
+            C:  { value: 0.08 },
+            Mn: { value: 1.5 },
+            Nb: { value: 0.0 }
+        };
 
-    .formula-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 14px;
-    }
+        const maxCr = 40;
+        const maxNi = 30;
+        const margin = 60;
+        const plotWidth = canvas.width - margin * 2;
+        const plotHeight = canvas.height - margin * 2;
 
-    .pill {
-      background: #eef2ff;
-      color: #1e293b;
-      border: 1px solid #dbeafe;
-      border-radius: 999px;
-      padding: 8px 12px;
-      font-size: 0.95rem;
-    }
+        // Ny logikk for å lytte til de direkte input-feltene
+        const inputIds = ['Cr', 'Ni', 'Mo', 'Si', 'C', 'Mn', 'Nb'];
+        inputIds.forEach(id => {
+            const inputField = document.getElementById(id);
+            inputField.addEventListener('input', function(e) {
+                // Konverterer til tall. Hvis feltet er tomt eller ugyldig, sett til 0.
+                let val = parseFloat(e.target.value);
+                if (isNaN(val)) val = 0;
+                
+                elements[id].value = val;
+                updateDiagram();
+            });
+        });
 
-    .layout {
-      display: grid;
-      grid-template-columns: 380px 1fr;
-      gap: 20px;
-      align-items: start;
-    }
+        function getCoords(crEq, niEq) {
+            const x = margin + (crEq / maxCr) * plotWidth;
+            const y = canvas.height - margin - (niEq / maxNi) * plotHeight;
+            return { x, y };
+        }
 
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      overflow: hidden;
-    }
+        // Tegn fasedelingene (Uendret fra originalen)
+        function drawPhases() {
+            ctx.strokeStyle = "#000";
+            ctx.lineWidth = 1;
+            ctx.fillStyle = "#333";
+            
+            // --- FASEETIKETTER ---
+            ctx.font = "bold 15px Arial";
+            const aPos = getCoords(16, 22); ctx.fillText("Austenit", aPos.x, aPos.y);
+            const mPos = getCoords(4, 8); ctx.fillText("Martensit", mPos.x, mPos.y);
+            const fPos = getCoords(34, 2.5); ctx.fillText("Ferrit", fPos.x, fPos.y);
 
-    .card-head {
-      padding: 18px 20px;
-      border-bottom: 1px solid var(--border);
-      background: #fff;
-    }
+            ctx.font = "14px Arial";
+            const amPos = getCoords(6, 16); ctx.fillText("A + M", amPos.x, amPos.y);
+            const mfPos = getCoords(13, 2.5); ctx.fillText("M + F", mfPos.x, mfPos.y);
+            const afPos = getCoords(27, 13); ctx.fillText("A + F", afPos.x, afPos.y);
+            const amfPos = getCoords(18, 7); ctx.fillText("A+M+F", amfPos.x, amfPos.y);
+            
+            // F + M er rotert på høykant
+            ctx.save();
+            const fmPos = getCoords(1.5, 2); 
+            ctx.translate(fmPos.x, fmPos.y);
+            ctx.rotate(Math.PI / 2);
+            ctx.fillText("F + M", 0, 0); 
+            ctx.restore();
 
-    .card-head h2 {
-      margin: 0 0 6px 0;
-      font-size: 1.2rem;
-    }
+            // --- HOVEDGRENSER ---
+            ctx.lineWidth = 1.5;
 
-    .card-head p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 0.95rem;
-      line-height: 1.45;
-    }
+            ctx.beginPath(); const l_e_start = getCoords(0, 8); ctx.moveTo(l_e_start.x, l_e_start.y);
+            const l_e_end = getCoords(2.2, 0); ctx.lineTo(l_e_end.x, l_e_end.y); ctx.stroke();
 
-    .card-body {
-      padding: 18px 20px 20px;
-    }
+            ctx.beginPath(); const l_a_start = getCoords(0, 25.5); ctx.moveTo(l_a_start.x, l_a_start.y);
+            const l_a_end = getCoords(26.0, 4.5); ctx.lineTo(l_a_end.x, l_a_end.y); ctx.stroke();
 
-    .fields {
-      display: grid;
-      gap: 14px;
-    }
+            ctx.beginPath(); const l_b_start = getCoords(0, 19.5); ctx.moveTo(l_b_start.x, l_b_start.y);
+            const l_b_end = getCoords(20.68, 2.78); ctx.lineTo(l_b_end.x, l_b_end.y); ctx.stroke();
 
-    .field {
-      display: grid;
-      gap: 8px;
-    }
+            ctx.beginPath(); const l_c_start = getCoords(8, 0); ctx.moveTo(l_c_start.x, l_c_start.y);
+            const l_c_end = getCoords(13.32, 8.74); ctx.lineTo(l_c_end.x, l_c_end.y); ctx.stroke();
 
-    .field-top {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      align-items: center;
-    }
+            ctx.beginPath(); const l_d_start = getCoords(12, 0); ctx.moveTo(l_d_start.x, l_d_start.y);
+            const l_d_end = getCoords(40, 9.0); ctx.lineTo(l_d_end.x, l_d_end.y); ctx.stroke();
 
-    .field-top label {
-      font-weight: 600;
-      font-size: 0.95rem;
-    }
+            // --- FERRITTLINJER ---
+            ctx.lineWidth = 1;
+            ctx.font = "13px Arial";
+            
+            const ferriteLines = [
+                { startCr: 7.0,   startNi: 0,    endCr: 28.7, endNi: 30.0, label: "0% Ferrit", labelCr: 25.0, labelNi: 24.8 },
+                { startCr: 14.03, startNi: 8.16, endCr: 30.7, endNi: 30.0, label: "5%",        labelCr: 27.0, labelNi: 25.1 },
+                { startCr: 14.82, startNi: 7.52, endCr: 32.8, endNi: 30.0, label: "10%",       labelCr: 29.0, labelNi: 25.3 },
+                { startCr: 15.79, startNi: 6.73, endCr: 36.5, endNi: 30.0, label: "20%",       labelCr: 31.0, labelNi: 23.9 },
+                { startCr: 16.94, startNi: 5.81, endCr: 40.0, endNi: 26.6, label: "40%",       labelCr: 33.0, labelNi: 20.3 },
+                { startCr: 18.48, startNi: 4.56, endCr: 40.0, endNi: 18.6, label: "80%",       labelCr: 34.0, labelNi: 14.7 },
+                { startCr: 12.0,  startNi: 0,    endCr: 40.0, endNi: 9.0,  label: "100%",      labelCr: 36.0, labelNi: 7.7 }
+            ];
 
-    .value-tag {
-      font-size: 0.9rem;
-      color: var(--muted);
-      min-width: 66px;
-      text-align: right;
-    }
+            ferriteLines.forEach(line => {
+                ctx.beginPath();
+                const start = getCoords(line.startCr, line.startNi);
+                const end = getCoords(line.endCr, line.endNi);
+                ctx.moveTo(start.x, start.y);
+                ctx.lineTo(end.x, end.y);
+                ctx.stroke();
 
-    .field-row {
-      display: grid;
-      grid-template-columns: 1fr 94px;
-      gap: 10px;
-      align-items: center;
-    }
+                const labelPos = getCoords(line.labelCr, line.labelNi);
+                ctx.save();
+                ctx.translate(labelPos.x, labelPos.y);
+                const angle = Math.atan2(end.y - start.y, end.x - start.x);
+                ctx.rotate(angle);
+                ctx.fillStyle = "#000";
+                ctx.fillText(line.label, 0, -5);
+                ctx.restore();
+            });
+        }
 
-    input[type="range"] {
-      width: 100%;
-      accent-color: #0f172a;
-      cursor: pointer;
-    }
+        function drawGrid() {
+            ctx.strokeStyle = "#e0e0e0";
+            ctx.lineWidth = 1;
+            ctx.font = "12px Arial";
+            ctx.fillStyle = "#666";
 
-    input[type="number"] {
-      width: 100%;
-      padding: 9px 10px;
-      border: 1px solid #cbd5e1;
-      border-radius: 10px;
-      font-size: 0.95rem;
-      color: var(--text);
-      background: white;
-    }
+            // X-akse
+            for (let i = 0; i <= maxCr; i += 5) {
+                const x = margin + (i / maxCr) * plotWidth;
+                ctx.beginPath(); ctx.moveTo(x, margin); ctx.lineTo(x, canvas.height - margin); ctx.stroke();
+                ctx.fillText(i, x - 5, canvas.height - margin + 15);
+            }
 
-    .stats {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-top: 18px;
-    }
+            // Y-akse
+            for (let i = 0; i <= maxNi; i += 5) {
+                const y = canvas.height - margin - (i / maxNi) * plotHeight;
+                ctx.beginPath(); ctx.moveTo(margin, y); ctx.lineTo(canvas.width - margin, y); ctx.stroke();
+                if (i > 0) ctx.fillText(i, margin - 20, y + 4);
+            }
 
-    .stat {
-      background: #f8fafc;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 14px;
-    }
+            // Hovedakser
+            ctx.strokeStyle = "#000";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(margin, margin);
+            ctx.lineTo(margin, canvas.height - margin);
+            ctx.lineTo(canvas.width - margin, canvas.height - margin);
+            ctx.stroke();
 
-    .stat .label {
-      font-size: 0.9rem;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
+            // Aksetitler
+            ctx.fillStyle = "black";
+            ctx.font = "bold 14px Arial";
+            ctx.fillText("Kromekvivalent = % Cr + % Mo + 1,5 x % Si + 0,5 x % Nb", canvas.width / 2 - 170, canvas.height - 10);
+            ctx.save();
+            ctx.translate(15, canvas.height / 2 + 100);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText("Nikkelekvivalent = % Ni + 30 x % C + 0,5 x % Mn", 0, 0);
+            ctx.restore();
 
-    .stat .value {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: var(--text);
-    }
+            // Diagramtittel
+            ctx.font = "bold 16px Arial";
+            ctx.fillText("Schaeffler-diagram", canvas.width / 2 - 80, 20);
+        }
 
-    .result {
-      margin-top: 12px;
-      background: white;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 14px;
-    }
+        function updateDiagram() {
+            const crEq = elements.Cr.value + elements.Mo.value + 1.5 * elements.Si.value + 0.5 * elements.Nb.value;
+            const niEq = elements.Ni.value + 30 * elements.C.value + 0.5 * elements.Mn.value;
 
-    .result .label {
-      color: var(--muted);
-      font-size: 0.9rem;
-      margin-bottom: 6px;
-    }
+            // Oppdaterer resultatene inne i selve formelboksene
+            document.getElementById('crEqOut').innerText = crEq.toFixed(2);
+            document.getElementById('niEqOut').innerText = niEq.toFixed(2);
 
-    .result .value {
-      font-size: 1.2rem;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawPhases(); 
+            drawGrid(); 
 
-    .note {
-      color: var(--muted);
-      font-size: 0.9rem;
-      line-height: 1.45;
-    }
+            // Plott resultatet (rødt punkt)
+            const coords = getCoords(crEq, niEq);
+            ctx.beginPath();
+            ctx.arc(coords.x, coords.y, 8, 0, 2 * Math.PI);
+            ctx.fillStyle = "#e74c3c"; 
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = "#c0392b"; 
+            ctx.stroke();
 
-    .button-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 16px;
-    }
+            // Etikett ved siden av punktet
+            ctx.fillStyle = "#000";
+            ctx.font = "bold 13px Arial";
+            
+            let textX = coords.x + 12;
+            if(crEq > 35) textX = coords.x - 70;
+            ctx.fillText(`(${crEq.toFixed(1)}, ${niEq.toFixed(1)})`, textX, coords.y - 12);
+        }
 
-    button {
-      border: 0;
-      border-radius: 12px;
-      padding: 10px 14px;
-      font-size: 0.95rem;
-      cursor: pointer;
-      transition: transform 0.05s ease, opacity 0.2s ease, background 0.2s ease;
-    }
-
-    button:hover { opacity: 0.95; }
-    button:active { transform: translateY(1px); }
-
-    .btn-primary {
-      background: #0f172a;
-      color: white;
-    }
-
-    .btn-secondary {
+        // Kjør første gang
+        updateDiagram();
+    </script>
+</body>
+</html>

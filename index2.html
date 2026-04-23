@@ -65,12 +65,7 @@
             border-radius: 4px;
             text-align: center;
         }
-        .result-label {
-            font-size: 1.2em;
-            font-weight: bold;
-            color: #e74c3c;
-            margin-left: 10px;
-        }
+        
     </style>
 </head>
 <body>
@@ -297,14 +292,6 @@
             ctx.strokeStyle = "#c0392b"; // Mørkere rød kant
             ctx.stroke();
 
-            // Etikett ved siden av punktet
-            ctx.fillStyle = "#000";
-            ctx.font = "bold 13px Arial";
-            
-            // Juster tekstposisjon hvis den er nær høyre kant
-            let textX = coords.x + 12;
-            if(crEq > 35) textX = coords.x - 70;
-            ctx.fillText(`(${crEq.toFixed(1)}, ${niEq.toFixed(1)})`, textX, coords.y - 12);
         }
 
         // Kjør første gang

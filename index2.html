@@ -12,37 +12,35 @@
             padding: 20px;
             background-color: #f4f4f9;
             color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         .container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
             background: white;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        .controls {
-            flex: 1;
-            min-width: 320px;
-        }
-        .canvas-container {
-            flex: 2;
-            min-width: 480px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 100%;
         }
         canvas {
             background-color: #fff;
             border: 1px solid #ccc;
             border-radius: 4px;
-            width: 100%;
+            max-width: 100%;
             height: auto;
+            margin: 20px 0; /* Litt pusterom over og under diagrammet */
         }
-        /* Nye stiler for formel-layouten */
         .formula-group {
             background: #e9ecef;
-            padding: 15px;
+            padding: 15px 25px;
             border-radius: 5px;
-            margin-bottom: 20px;
+            text-align: center;
+            width: 100%;
+            box-sizing: border-box;
         }
         .formula-group h3 {
             margin-top: 0;
@@ -53,9 +51,10 @@
         .formula-line {
             display: flex;
             align-items: center;
+            justify-content: center;
             flex-wrap: wrap;
             gap: 8px;
-            font-size: 1.05em;
+            font-size: 1.1em;
             line-height: 2;
         }
         .formula-line input[type="number"] {
@@ -66,61 +65,52 @@
             border-radius: 4px;
             text-align: center;
         }
-        .formula-result {
-            margin-top: 10px;
+        .result-label {
             font-size: 1.2em;
             font-weight: bold;
             color: #e74c3c;
-            border-top: 1px dashed #ccc;
-            padding-top: 10px;
+            margin-left: 10px;
         }
     </style>
 </head>
 <body>
 
-    <h2>Interaktivt Schaeffler-diagram</h2>
-    <p>Skriv inn verdiene for legeringselementene direkte i formlene under for å se fasestrukturen.</p>
+    <div style="text-align: center; margin-bottom: 20px;">
+        <h2>Interaktivt Schaeffler-diagram</h2>
+        <p>Skriv inn verdiene for legeringselementene i formlene for å se fasestrukturen.</p>
+    </div>
 
     <div class="container">
-        <div class="controls" id="controls">
-            
-            <div class="formula-group">
-                <h3>Kromekvivalent (Cr<sub>ekv</sub>)</h3>
-                <div class="formula-line">
-                    <input type="number" id="Cr" value="18.0" step="0.1" min="0" max="40"> % Cr +
-                    <input type="number" id="Mo" value="0.0" step="0.1" min="0" max="10"> % Mo +
-                    1.5 &times; <input type="number" id="Si" value="0.5" step="0.1" min="0" max="5"> % Si +
-                    0.5 &times; <input type="number" id="Nb" value="0.0" step="0.01" min="0" max="2"> % Nb
-                </div>
-                <div class="formula-result">
-                    = <span id="crEqOut">0.00</span>
-                </div>
+        
+        <div class="formula-group">
+            <h3>Nikkelekvivalent (Ni<sub>ekv</sub>) - Y-akse</h3>
+            <div class="formula-line">
+                <input type="number" id="Ni" value="8.0" step="0.1" min="0" max="30"> % Ni +
+                30 &times; <input type="number" id="C" value="0.08" step="0.01" min="0" max="1"> % C +
+                0.5 &times; <input type="number" id="Mn" value="1.5" step="0.1" min="0" max="10"> % Mn
+                <span class="result-label">= <span id="niEqOut">0.00</span></span>
             </div>
-
-            <div class="formula-group">
-                <h3>Nikkelekvivalent (Ni<sub>ekv</sub>)</h3>
-                <div class="formula-line">
-                    <input type="number" id="Ni" value="8.0" step="0.1" min="0" max="30"> % Ni +
-                    30 &times; <input type="number" id="C" value="0.08" step="0.01" min="0" max="1"> % C +
-                    0.5 &times; <input type="number" id="Mn" value="1.5" step="0.1" min="0" max="10"> % Mn
-                </div>
-                <div class="formula-result">
-                    = <span id="niEqOut">0.00</span>
-                </div>
+        </div>
+        
+        <canvas id="schaefflerCanvas" width="650" height="500"></canvas>
+        
+        <div class="formula-group">
+            <h3>Kromekvivalent (Cr<sub>ekv</sub>) - X-akse</h3>
+            <div class="formula-line">
+                <input type="number" id="Cr" value="18.0" step="0.1" min="0" max="40"> % Cr +
+                <input type="number" id="Mo" value="0.0" step="0.1" min="0" max="10"> % Mo +
+                1.5 &times; <input type="number" id="Si" value="0.5" step="0.1" min="0" max="5"> % Si +
+                0.5 &times; <input type="number" id="Nb" value="0.0" step="0.01" min="0" max="2"> % Nb
+                <span class="result-label">= <span id="crEqOut">0.00</span></span>
             </div>
-
         </div>
 
-        <div class="canvas-container">
-            <canvas id="schaefflerCanvas" width="650" height="500"></canvas>
-            </div>
     </div>
 
     <script>
         const canvas = document.getElementById('schaefflerCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Verdiene oppbevares slik du hadde satt dem opp
         const elements = {
             Cr: { value: 18.0 },
             Ni: { value: 8.0 },
@@ -137,12 +127,10 @@
         const plotWidth = canvas.width - margin * 2;
         const plotHeight = canvas.height - margin * 2;
 
-        // Ny logikk for å lytte til de direkte input-feltene
         const inputIds = ['Cr', 'Ni', 'Mo', 'Si', 'C', 'Mn', 'Nb'];
         inputIds.forEach(id => {
             const inputField = document.getElementById(id);
             inputField.addEventListener('input', function(e) {
-                // Konverterer til tall. Hvis feltet er tomt eller ugyldig, sett til 0.
                 let val = parseFloat(e.target.value);
                 if (isNaN(val)) val = 0;
                 
@@ -157,7 +145,7 @@
             return { x, y };
         }
 
-        // Tegn fasedelingene (Uendret fra originalen)
+        // Tegn fasedelingene (Beregnet nøyaktig fra originaldiagrammet)
         function drawPhases() {
             ctx.strokeStyle = "#000";
             ctx.lineWidth = 1;
@@ -177,42 +165,47 @@
             
             // F + M er rotert på høykant
             ctx.save();
-            const fmPos = getCoords(1.5, 2); 
+            const fmPos = getCoords(1.0, 2); 
             ctx.translate(fmPos.x, fmPos.y);
-            ctx.rotate(Math.PI / 2);
+            ctx.rotate(-Math.PI / 2);
             ctx.fillText("F + M", 0, 0); 
             ctx.restore();
 
-            // --- HOVEDGRENSER ---
+            // --- HOVEDGRENSER (De tykke linjene) ---
             ctx.lineWidth = 1.5;
 
+            // 1. F+M grense nede til venstre
             ctx.beginPath(); const l_e_start = getCoords(0, 8); ctx.moveTo(l_e_start.x, l_e_start.y);
             const l_e_end = getCoords(2.2, 0); ctx.lineTo(l_e_end.x, l_e_end.y); ctx.stroke();
 
+            // 2. Austenit / A+F (Den øverste lange skrålinjen)
             ctx.beginPath(); const l_a_start = getCoords(0, 25.5); ctx.moveTo(l_a_start.x, l_a_start.y);
             const l_a_end = getCoords(26.0, 4.5); ctx.lineTo(l_a_end.x, l_a_end.y); ctx.stroke();
 
+            // 3. A+M / M grense (Fra Y=19.5, fortsetter HELE veien ned til 100% ferrittlinjen)
             ctx.beginPath(); const l_b_start = getCoords(0, 19.5); ctx.moveTo(l_b_start.x, l_b_start.y);
             const l_b_end = getCoords(20.68, 2.78); ctx.lineTo(l_b_end.x, l_b_end.y); ctx.stroke();
 
-            ctx.beginPath(); const l_c_start = getCoords(8, 0); ctx.moveTo(l_c_start.x, l_c_start.y);
-            const l_c_end = getCoords(13.32, 8.74); ctx.lineTo(l_c_end.x, l_c_end.y); ctx.stroke();
+            // 4. Topplinjen mot Austenitt (0% linjen)
+            ctx.beginPath(); const l_c_start = getCoords(7, 0); ctx.moveTo(l_c_start.x, l_c_start.y);
+            const l_c_end = getCoords(28.7, 30); ctx.lineTo(l_c_end.x, l_c_end.y); ctx.stroke();
 
+            // 5. Bunnlinjen mot Ferrit (100% linjen)
             ctx.beginPath(); const l_d_start = getCoords(12, 0); ctx.moveTo(l_d_start.x, l_d_start.y);
             const l_d_end = getCoords(40, 9.0); ctx.lineTo(l_d_end.x, l_d_end.y); ctx.stroke();
 
-            // --- FERRITTLINJER ---
+
+            // --- FERRITTLINJER (De tynne linjene) ---
             ctx.lineWidth = 1;
             ctx.font = "13px Arial";
             
-            const ferriteLines = [
-                { startCr: 7.0,   startNi: 0,    endCr: 28.7, endNi: 30.0, label: "0% Ferrit", labelCr: 25.0, labelNi: 24.8 },
+            const ferriteLines = [                 
+                // 5% - 80% starter nå EKSAKT på Linje 3 (A+M / M grensen)
                 { startCr: 14.03, startNi: 8.16, endCr: 30.7, endNi: 30.0, label: "5%",        labelCr: 27.0, labelNi: 25.1 },
                 { startCr: 14.82, startNi: 7.52, endCr: 32.8, endNi: 30.0, label: "10%",       labelCr: 29.0, labelNi: 25.3 },
                 { startCr: 15.79, startNi: 6.73, endCr: 36.5, endNi: 30.0, label: "20%",       labelCr: 31.0, labelNi: 23.9 },
                 { startCr: 16.94, startNi: 5.81, endCr: 40.0, endNi: 26.6, label: "40%",       labelCr: 33.0, labelNi: 20.3 },
                 { startCr: 18.48, startNi: 4.56, endCr: 40.0, endNi: 18.6, label: "80%",       labelCr: 34.0, labelNi: 14.7 },
-                { startCr: 12.0,  startNi: 0,    endCr: 40.0, endNi: 9.0,  label: "100%",      labelCr: 36.0, labelNi: 7.7 }
             ];
 
             ferriteLines.forEach(line => {
@@ -223,6 +216,7 @@
                 ctx.lineTo(end.x, end.y);
                 ctx.stroke();
 
+                // Plasserer teksten i samme vinkel som strekene
                 const labelPos = getCoords(line.labelCr, line.labelNi);
                 ctx.save();
                 ctx.translate(labelPos.x, labelPos.y);
@@ -263,9 +257,10 @@
             ctx.lineTo(canvas.width - margin, canvas.height - margin);
             ctx.stroke();
 
-            // Aksetitler
+            // Aksetitler og formler fra diagrammet ditt
             ctx.fillStyle = "black";
             ctx.font = "bold 14px Arial";
+            // Oppdatert formel for Kromekvivalent (inkl Nb)
             ctx.fillText("Kromekvivalent = % Cr + % Mo + 1,5 x % Si + 0,5 x % Nb", canvas.width / 2 - 170, canvas.height - 10);
             ctx.save();
             ctx.translate(15, canvas.height / 2 + 100);
@@ -279,31 +274,34 @@
         }
 
         function updateDiagram() {
+            // Beregn ekvivalenter (inkludert Nb)
             const crEq = elements.Cr.value + elements.Mo.value + 1.5 * elements.Si.value + 0.5 * elements.Nb.value;
             const niEq = elements.Ni.value + 30 * elements.C.value + 0.5 * elements.Mn.value;
 
-            // Oppdaterer resultatene inne i selve formelboksene
+            // Sender de utregnede tallene til de nye HTML-elementene over/under canvaset
             document.getElementById('crEqOut').innerText = crEq.toFixed(2);
             document.getElementById('niEqOut').innerText = niEq.toFixed(2);
 
+            // Tøm canvas og tegn alt på nytt
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawPhases(); 
-            drawGrid(); 
+            drawPhases(); // Først fasedelinger (sorte linjer)
+            drawGrid(); // Så akser og tittel
 
             // Plott resultatet (rødt punkt)
             const coords = getCoords(crEq, niEq);
             ctx.beginPath();
             ctx.arc(coords.x, coords.y, 8, 0, 2 * Math.PI);
-            ctx.fillStyle = "#e74c3c"; 
+            ctx.fillStyle = "#e74c3c"; // Rød farge for punktet
             ctx.fill();
             ctx.lineWidth = 2;
-            ctx.strokeStyle = "#c0392b"; 
+            ctx.strokeStyle = "#c0392b"; // Mørkere rød kant
             ctx.stroke();
 
             // Etikett ved siden av punktet
             ctx.fillStyle = "#000";
             ctx.font = "bold 13px Arial";
             
+            // Juster tekstposisjon hvis den er nær høyre kant
             let textX = coords.x + 12;
             if(crEq > 35) textX = coords.x - 70;
             ctx.fillText(`(${crEq.toFixed(1)}, ${niEq.toFixed(1)})`, textX, coords.y - 12);

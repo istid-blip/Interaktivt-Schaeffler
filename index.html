@@ -143,7 +143,7 @@
             
             // F + M er rotert på høykant
             ctx.save();
-            const fmPos = getCoords(1.0, 3.5); 
+            const fmPos = getCoords(1.0, 2); 
             ctx.translate(fmPos.x, fmPos.y);
             ctx.rotate(-Math.PI / 2);
             ctx.fillText("F + M", 0, 0); 
@@ -164,7 +164,7 @@
             ctx.beginPath(); const l_b_start = getCoords(0, 19.5); ctx.moveTo(l_b_start.x, l_b_start.y);
             const l_b_end = getCoords(20.68, 2.78); ctx.lineTo(l_b_end.x, l_b_end.y); ctx.stroke();
 
-            // 4. M / M+F grense (Kommer fra bunnen, STOPPER der den treffer linje 3 (A+M+F hjørnet))
+            // 4. Topplinjen mot Austenitt (0% linjen)
             ctx.beginPath(); const l_c_start = getCoords(7, 0); ctx.moveTo(l_c_start.x, l_c_start.y);
             const l_c_end = getCoords(28.7, 30); ctx.lineTo(l_c_end.x, l_c_end.y); ctx.stroke();
 
@@ -177,19 +177,13 @@
             ctx.lineWidth = 1;
             ctx.font = "13px Arial";
             
-            const ferriteLines = [
-                // 0% forblir uendret (går ned til Y=0)
-                { startCr: 7.0,   startNi: 0,    endCr: 28.7, endNi: 30.0, label: "0% Ferrit", labelCr: 25.0, labelNi: 24.8 },
-                
+            const ferriteLines = [                
                 // 5% - 80% starter nå EKSAKT på Linje 3 (A+M / M grensen)
                 { startCr: 14.03, startNi: 8.16, endCr: 30.7, endNi: 30.0, label: "5%",        labelCr: 27.0, labelNi: 25.1 },
                 { startCr: 14.82, startNi: 7.52, endCr: 32.8, endNi: 30.0, label: "10%",       labelCr: 29.0, labelNi: 25.3 },
                 { startCr: 15.79, startNi: 6.73, endCr: 36.5, endNi: 30.0, label: "20%",       labelCr: 31.0, labelNi: 23.9 },
                 { startCr: 16.94, startNi: 5.81, endCr: 40.0, endNi: 26.6, label: "40%",       labelCr: 33.0, labelNi: 20.3 },
                 { startCr: 18.48, startNi: 4.56, endCr: 40.0, endNi: 18.6, label: "80%",       labelCr: 34.0, labelNi: 14.7 },
-                
-                // 100% forblir uendret
-                { startCr: 12.0,  startNi: 0,    endCr: 40.0, endNi: 9.0,  label: "100%",      labelCr: 36.0, labelNi: 7.7 }
             ];
 
             ferriteLines.forEach(line => {

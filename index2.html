@@ -1,487 +1,249 @@
-import React, { useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Slider } from "@/components/ui/slider";
-import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
-import { Download, RotateCcw } from "lucide-react";
-
-const defaults = {
-  Cr: 18,
-  Ni: 8,
-  Mo: 0,
-  Si: 0.6,
-  Nb: 0,
-  Mn: 1.5,
-  C: 0.05,
-  N: 0.04,
-};
-
-const regions = [
-  {
-    name: "Austenitt",
-    color: "rgba(59,130,246,0.18)",
-    stroke: "rgba(59,130,246,0.8)",
-    points: [
-      [10, 22], [14, 20], [20, 18], [24, 15], [28, 12], [30, 10], [30, 30], [10, 30]
-    ],
-  },
-  {
-    name: "Austenitt + ferritt",
-    color: "rgba(16,185,129,0.18)",
-    stroke: "rgba(16,185,129,0.8)",
-    points: [
-      [4, 12], [8, 16], [12, 18], [18, 16], [24, 12], [20, 8], [12, 8], [6, 9]
-    ],
-  },
-  {
-    name: "Martensitt",
-    color: "rgba(239,68,68,0.18)",
-    stroke: "rgba(239,68,68,0.8)",
-    points: [
-      [0, 0], [8, 0], [12, 4], [10, 8], [6, 9], [2, 6]
-    ],
-  },
-  {
-    name: "Martensitt + ferritt",
-    color: "rgba(245,158,11,0.18)",
-    stroke: "rgba(245,158,11,0.8)",
-    points: [
-      [8, 0], [16, 0], [18, 4], [16, 8], [10, 8], [12, 4]
-    ],
-  },
-  {
-    name: "Ferritt",
-    color: "rgba(168,85,247,0.16)",
-    stroke: "rgba(168,85,247,0.8)",
-    points: [
-      [18, 0], [30, 0], [30, 10], [24, 12], [18, 10], [16, 8], [18, 4]
-    ],
-  },
-];
-
-const width = 860;
-const height = 620;
-const margin = { top: 30, right: 30, bottom: 60, left: 75 };
-const xMin = 0;
-const xMax = 30;
-const yMin = 0;
-const yMax = 30;
-
-function xScale(x) {
-  return margin.left + ((x - xMin) / (xMax - xMin)) * (width - margin.left - margin.right);
-}
-
-function yScale(y) {
-  return height - margin.bottom - ((y - yMin) / (yMax - yMin)) * (height - margin.top - margin.bottom);
-}
-
-function polygonPath(points) {
-  return points.map((p, i) => `${i === 0 ? "M" : "L"} ${xScale(p[0])} ${yScale(p[1])}`).join(" ") + " Z";
-}
-
-function formatNum(v, digits = 2) {
-  return Number(v).toFixed(digits);
-}
-
-function Field({ label, name, value, onChange, min, max, step }) {
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <Label htmlFor={name}>{label}</Label>
-        <span className="text-sm text-slate-500">{value}</span>
-      </div>
-      <div className="grid grid-cols-[1fr_90px] gap-3 items-center">
-        <Slider
-          value={[Number(value)]}
-          min={min}
-          max={max}
-          step={step}
-          onValueChange={(val) => onChange(name, val[0])}
-        />
-        <Input
-          id={name}
-          type="number"
-          value={value}
-          min={min}
-          max={max}
-          step={step}
-          onChange={(e) => onChange(name, e.target.value)}
-        />
-      </div>
-    </div>
-  );
-}
-
-export default function SchaefflerDiagramApp() {
-  const [chem, setChem] = useState(defaults);
-  const [showLabels, setShowLabels] = useState(true);
-
-  const values = useMemo(() => {
-    const v = Object.fromEntries(Object.entries(chem).map(([k, val]) => [k, Number(val) || 0]));
-
-    // Klassisk Schaeffler:
-    // Cr_eq = Cr + Mo + 1.5*Si + 0.5*Nb
-    // Ni_eq = Ni + 30*C + 0.5*Mn
-    // N er vist som input hvis du senere vil bytte til DeLong/WRC.
-    const Cr_eq = v.Cr + v.Mo + 1.5 * v.Si + 0.5 * v.Nb;
-    const Ni_eq = v.Ni + 30 * v.C + 0.5 * v.Mn;
-
-    let guess = "Udefinert";
-    if (Ni_eq >= 18 && Cr_eq >= 10) guess = "Austenitt";
-    else if (Ni_eq >= 8 && Cr_eq >= 5 && Cr_eq <= 24) guess = "Austenitt + ferritt";
-    else if (Ni_eq < 8 && Cr_eq < 10) guess = "Martensitt";
-    else if (Ni_eq < 8 && Cr_eq >= 10 && Cr_eq < 18) guess = "Martensitt + ferritt";
-    else if (Ni_eq < 12 && Cr_eq >= 18) guess = "Ferritt";
-
-    return { v, Cr_eq, Ni_eq, guess };
-  }, [chem]);
-
-  const pointX = xScale(values.Cr_eq);
-  const pointY = yScale(values.Ni_eq);
-
-  const handleChange = (name, value) => {
-    setChem((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const reset = () => setChem(defaults);
-
-  const downloadHtml = () => {
-    const html = `<!doctype html>
+<!doctype html>
 <html lang="no">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Interaktivt Schaeffler-diagram</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; background: #f8fafc; color: #0f172a; }
-    .wrap { max-width: 1200px; margin: 0 auto; padding: 24px; }
-    .grid { display: grid; grid-template-columns: 360px 1fr; gap: 20px; }
-    .card { background: white; border-radius: 18px; padding: 18px; box-shadow: 0 10px 30px rgba(0,0,0,.08); }
-    .row { margin-bottom: 14px; }
-    .row label { display:block; margin-bottom:6px; font-weight:600; }
-    .row input { width: 100%; padding: 8px 10px; border:1px solid #cbd5e1; border-radius: 10px; }
-    .stats { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
-    .stat { background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:12px; }
-    .small { color:#475569; font-size:14px; }
-    button { border:0; background:#0f172a; color:white; padding:10px 14px; border-radius: 12px; cursor:pointer; }
-    svg { width:100%; height:auto; background:white; border-radius:18px; }
-    @media (max-width: 950px) { .grid { grid-template-columns: 1fr; } }
-  </style>
-</head>
-<body>
-<div class="wrap">
-  <h1>Interaktivt Schaeffler-diagram</h1>
-  <p class="small">Klassisk Schaeffler-beregning: Cr_eq = Cr + Mo + 1.5·Si + 0.5·Nb, Ni_eq = Ni + 30·C + 0.5·Mn</p>
-  <div class="grid">
-    <div class="card">
-      <div id="inputs"></div>
-      <div class="stats">
-        <div class="stat"><div class="small">Cr-ekvivalent</div><div id="creq"></div></div>
-        <div class="stat"><div class="small">Ni-ekvivalent</div><div id="nieq"></div></div>
-        <div class="stat" style="grid-column:1 / -1"><div class="small">Omtrentlig struktur</div><div id="guess"></div></div>
-      </div>
-      <div style="margin-top:16px"><button onclick="resetValues()">Nullstill</button></div>
-    </div>
-    <div class="card">
-      <svg viewBox="0 0 860 620" id="chart"></svg>
-    </div>
-  </div>
-</div>
-<script>
-const defaults = ${JSON.stringify(defaults)};
-let chem = {...defaults};
-const width = 860, height = 620;
-const margin = { top: 30, right: 30, bottom: 60, left: 75 };
-const regions = ${JSON.stringify(regions)};
-const xScale = x => margin.left + ((x) / 30) * (width - margin.left - margin.right);
-const yScale = y => height - margin.bottom - ((y) / 30) * (height - margin.top - margin.bottom);
-const fmt = n => Number(n).toFixed(2);
-function calc() {
-  const v = Object.fromEntries(Object.entries(chem).map(([k,val]) => [k, Number(val)||0]));
-  const Cr_eq = v.Cr + v.Mo + 1.5*v.Si + 0.5*v.Nb;
-  const Ni_eq = v.Ni + 30*v.C + 0.5*v.Mn;
-  let guess = 'Udefinert';
-  if (Ni_eq >= 18 && Cr_eq >= 10) guess = 'Austenitt';
-  else if (Ni_eq >= 8 && Cr_eq >= 5 && Cr_eq <= 24) guess = 'Austenitt + ferritt';
-  else if (Ni_eq < 8 && Cr_eq < 10) guess = 'Martensitt';
-  else if (Ni_eq < 8 && Cr_eq >= 10 && Cr_eq < 18) guess = 'Martensitt + ferritt';
-  else if (Ni_eq < 12 && Cr_eq >= 18) guess = 'Ferritt';
-  return {Cr_eq, Ni_eq, guess};
-}
-function buildInputs() {
-  const root = document.getElementById('inputs');
-  root.innerHTML = '';
-  const fields = [
-    ['Cr','Krom (%)',0,35,0.1],['Ni','Nikkel (%)',0,35,0.1],['Mo','Molybden (%)',0,10,0.1],
-    ['Si','Silisium (%)',0,5,0.01],['Nb','Niob (%)',0,5,0.01],['Mn','Mangan (%)',0,20,0.1],
-    ['C','Karbon (%)',0,1.5,0.005],['N','Nitrogen (%)',0,0.5,0.005]
-  ];
-  for (const [key,label,min,max,step] of fields) {
-    const row = document.createElement('div'); row.className = 'row';
-    row.innerHTML = '<label>'+label+'</label><input type="number" min="'+min+'" max="'+max+'" step="'+step+'" value="'+chem[key]+'" />';
-    row.querySelector('input').addEventListener('input', e => { chem[key] = e.target.value; render(); });
-    root.appendChild(row);
-  }
-}
-function polygonPath(points) {
-  return points.map((p,i)=> (i===0?'M':'L')+' '+xScale(p[0])+' '+yScale(p[1])).join(' ') + ' Z';
-}
-function renderChart(Cr_eq, Ni_eq) {
-  const svg = document.getElementById('chart');
-  const grid = [];
-  for (let i=0;i<=30;i+=2) {
-    grid.push('<line x1="'+xScale(i)+'" y1="'+yScale(0)+'" x2="'+xScale(i)+'" y2="'+yScale(30)+'" stroke="#e2e8f0" />');
-    grid.push('<line x1="'+xScale(0)+'" y1="'+yScale(i)+'" x2="'+xScale(30)+'" y2="'+yScale(i)+'" stroke="#e2e8f0" />');
-  }
-  const axes = '<line x1="'+xScale(0)+'" y1="'+yScale(0)+'" x2="'+xScale(30)+'" y2="'+yScale(0)+'" stroke="#0f172a" stroke-width="2" />' +
-               '<line x1="'+xScale(0)+'" y1="'+yScale(0)+'" x2="'+xScale(0)+'" y2="'+yScale(30)+'" stroke="#0f172a" stroke-width="2" />';
-  const labels = [];
-  for (let i=0;i<=30;i+=5) {
-    labels.push('<text x="'+xScale(i)+'" y="'+(yScale(0)+24)+'" text-anchor="middle" font-size="12" fill="#334155">'+i+'</text>');
-    labels.push('<text x="'+(xScale(0)-18)+'" y="'+(yScale(i)+4)+'" text-anchor="middle" font-size="12" fill="#334155">'+i+'</text>');
-  }
-  const regionPaths = regions.map(r => '<path d="'+polygonPath(r.points)+'" fill="'+r.color+'" stroke="'+r.stroke+'" stroke-width="2" />').join('');
-  const regionNames = [
-    ['Austenitt', 23, 24], ['Austenitt + ferritt', 12, 13], ['Martensitt', 4.5, 3], ['Martensitt + ferritt', 13.5, 3.5], ['Ferritt', 24, 5]
-  ].map(([name,x,y]) => '<text x="'+xScale(x)+'" y="'+yScale(y)+'" text-anchor="middle" font-size="14" fill="#0f172a">'+name+'</text>').join('');
-  const point = '<circle cx="'+xScale(Cr_eq)+'" cy="'+yScale(Ni_eq)+'" r="8" fill="#111827" />' +
-                '<circle cx="'+xScale(Cr_eq)+'" cy="'+yScale(Ni_eq)+'" r="14" fill="rgba(17,24,39,0.12)" />';
-  const axisText = '<text x="'+((xScale(0)+xScale(30))/2)+'" y="'+(height-14)+'" text-anchor="middle" font-size="16" fill="#0f172a">Cr-ekvivalent</text>' +
-                   '<text x="18" y="'+((yScale(0)+yScale(30))/2)+'" text-anchor="middle" font-size="16" fill="#0f172a" transform="rotate(-90 18 '+((yScale(0)+yScale(30))/2)+')">Ni-ekvivalent</text>';
-  svg.innerHTML = grid.join('') + axes + labels.join('') + regionPaths + regionNames + point + axisText;
-}
-function render() {
-  const {Cr_eq, Ni_eq, guess} = calc();
-  document.getElementById('creq').textContent = fmt(Cr_eq);
-  document.getElementById('nieq').textContent = fmt(Ni_eq);
-  document.getElementById('guess').textContent = guess;
-  renderChart(Cr_eq, Ni_eq);
-}
-function resetValues(){ chem = {...defaults}; buildInputs(); render(); }
-window.resetValues = resetValues;
-buildInputs(); render();
-</script>
-</body>
-</html>`;
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #475569;
+      --border: #e2e8f0;
+      --grid: #e5e7eb;
+      --axis: #0f172a;
+      --accent: #111827;
+      --accent-soft: rgba(17, 24, 39, 0.12);
+      --blue: rgba(59,130,246,0.18);
+      --blue-stroke: rgba(59,130,246,0.8);
+      --green: rgba(16,185,129,0.18);
+      --green-stroke: rgba(16,185,129,0.8);
+      --red: rgba(239,68,68,0.18);
+      --red-stroke: rgba(239,68,68,0.8);
+      --amber: rgba(245,158,11,0.18);
+      --amber-stroke: rgba(245,158,11,0.8);
+      --purple: rgba(168,85,247,0.16);
+      --purple-stroke: rgba(168,85,247,0.8);
+      --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      --radius: 18px;
+    }
 
-    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "interaktivt-schaeffler-diagram.html";
-    a.click();
-    URL.revokeObjectURL(a.href);
-  };
+    * { box-sizing: border-box; }
 
-  const fields = [
-    ["Cr", "Krom (%)", 0, 35, 0.1],
-    ["Ni", "Nikkel (%)", 0, 35, 0.1],
-    ["Mo", "Molybden (%)", 0, 10, 0.1],
-    ["Si", "Silisium (%)", 0, 5, 0.01],
-    ["Nb", "Niob (%)", 0, 5, 0.01],
-    ["Mn", "Mangan (%)", 0, 20, 0.1],
-    ["C", "Karbon (%)", 0, 1.5, 0.005],
-    ["N", "Nitrogen (%)", 0, 0.5, 0.005],
-  ];
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
 
-  return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-2"
-        >
-          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-900">
-            Interaktivt Schaeffler-diagram
-          </h1>
-          <p className="text-slate-600 max-w-3xl">
-            Juster kjemisk sammensetning og se hvordan punktet flytter seg i diagrammet.
-            Denne demoen bruker klassisk Schaeffler-beregning og en forenklet bakgrunn for
-            strukturfeltene.
-          </p>
-          <div className="flex flex-wrap gap-2 pt-1">
-            <Badge variant="secondary">Cr_eq = Cr + Mo + 1.5·Si + 0.5·Nb</Badge>
-            <Badge variant="secondary">Ni_eq = Ni + 30·C + 0.5·Mn</Badge>
-          </div>
-        </motion.div>
+    body {
+      padding: 24px;
+    }
 
-        <div className="grid grid-cols-1 xl:grid-cols-[380px_1fr] gap-6">
-          <Card className="rounded-2xl shadow-sm border-slate-200">
-            <CardHeader>
-              <CardTitle>Inndata</CardTitle>
-              <CardDescription>
-                Oppgi legeringselementer i vektprosent.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              {fields.map(([name, label, min, max, step]) => (
-                <Field
-                  key={name}
-                  label={label}
-                  name={name}
-                  value={chem[name]}
-                  onChange={handleChange}
-                  min={min}
-                  max={max}
-                  step={step}
-                />
-              ))}
+    .container {
+      max-width: 1380px;
+      margin: 0 auto;
+    }
 
-              <div className="grid grid-cols-2 gap-3 pt-2">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="text-sm text-slate-500">Cr-ekvivalent</div>
-                  <div className="text-2xl font-semibold text-slate-900">{formatNum(values.Cr_eq)}</div>
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="text-sm text-slate-500">Ni-ekvivalent</div>
-                  <div className="text-2xl font-semibold text-slate-900">{formatNum(values.Ni_eq)}</div>
-                </div>
-              </div>
+    .header {
+      margin-bottom: 20px;
+    }
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-2">
-                <div className="text-sm text-slate-500">Omtrentlig struktur</div>
-                <div className="text-xl font-semibold text-slate-900">{values.guess}</div>
-                <p className="text-sm text-slate-500">
-                  Merk: Områdene i bakgrunnen er forenklet for visualisering. For produksjonsbruk bør
-                  du kvalitetssikre grensene mot standarden/metodikken du bruker.
-                </p>
-              </div>
+    .header h1 {
+      margin: 0 0 8px 0;
+      font-size: clamp(1.8rem, 2.6vw, 2.6rem);
+      line-height: 1.1;
+    }
 
-              <div className="flex flex-wrap gap-3 pt-1">
-                <Button onClick={reset} variant="secondary" className="rounded-2xl">
-                  <RotateCcw className="mr-2 h-4 w-4" />
-                  Nullstill
-                </Button>
-                <Button onClick={downloadHtml} className="rounded-2xl">
-                  <Download className="mr-2 h-4 w-4" />
-                  Last ned HTML
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+    .header p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 980px;
+      line-height: 1.5;
+    }
 
-          <Card className="rounded-2xl shadow-sm border-slate-200 overflow-hidden">
-            <CardHeader className="border-b border-slate-200 bg-white">
-              <div className="flex items-center justify-between gap-4 flex-wrap">
-                <div>
-                  <CardTitle>Diagram</CardTitle>
-                  <CardDescription>
-                    Punktet oppdateres direkte når du endrer kjemien.
-                  </CardDescription>
-                </div>
-                <Button
-                  variant="outline"
-                  className="rounded-2xl"
-                  onClick={() => setShowLabels((s) => !s)}
-                >
-                  {showLabels ? "Skjul feltetiketter" : "Vis feltetiketter"}
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="p-3 md:p-4 bg-slate-50">
-              <div className="w-full overflow-auto rounded-2xl bg-white border border-slate-200">
-                <svg viewBox={`0 0 ${width} ${height}`} className="w-full min-w-[760px] h-auto">
-                  {[...Array(16)].map((_, i) => {
-                    const v = i * 2;
-                    return (
-                      <g key={`grid-${v}`}>
-                        <line
-                          x1={xScale(v)}
-                          y1={yScale(0)}
-                          x2={xScale(v)}
-                          y2={yScale(30)}
-                          stroke="#e2e8f0"
-                        />
-                        <line
-                          x1={xScale(0)}
-                          y1={yScale(v)}
-                          x2={xScale(30)}
-                          y2={yScale(v)}
-                          stroke="#e2e8f0"
-                        />
-                      </g>
-                    );
-                  })}
+    .formula-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
 
-                  <line x1={xScale(0)} y1={yScale(0)} x2={xScale(30)} y2={yScale(0)} stroke="#0f172a" strokeWidth="2" />
-                  <line x1={xScale(0)} y1={yScale(0)} x2={xScale(0)} y2={yScale(30)} stroke="#0f172a" strokeWidth="2" />
+    .pill {
+      background: #eef2ff;
+      color: #1e293b;
+      border: 1px solid #dbeafe;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 0.95rem;
+    }
 
-                  {regions.map((region) => (
-                    <path
-                      key={region.name}
-                      d={polygonPath(region.points)}
-                      fill={region.color}
-                      stroke={region.stroke}
-                      strokeWidth="2"
-                    />
-                  ))}
+    .layout {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
 
-                  {showLabels && (
-                    <>
-                      <text x={xScale(23)} y={yScale(24)} textAnchor="middle" className="fill-slate-800 text-[14px]">
-                        Austenitt
-                      </text>
-                      <text x={xScale(12)} y={yScale(13)} textAnchor="middle" className="fill-slate-800 text-[14px]">
-                        Austenitt + ferritt
-                      </text>
-                      <text x={xScale(4.5)} y={yScale(3)} textAnchor="middle" className="fill-slate-800 text-[14px]">
-                        Martensitt
-                      </text>
-                      <text x={xScale(13.5)} y={yScale(3.5)} textAnchor="middle" className="fill-slate-800 text-[14px]">
-                        Martensitt + ferritt
-                      </text>
-                      <text x={xScale(24)} y={yScale(5)} textAnchor="middle" className="fill-slate-800 text-[14px]">
-                        Ferritt
-                      </text>
-                    </>
-                  )}
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
 
-                  {[0, 5, 10, 15, 20, 25, 30].map((tick) => (
-                    <g key={`xtick-${tick}`}>
-                      <text x={xScale(tick)} y={yScale(0) + 24} textAnchor="middle" className="fill-slate-600 text-[12px]">
-                        {tick}
-                      </text>
-                      <text x={xScale(0) - 18} y={yScale(tick) + 4} textAnchor="middle" className="fill-slate-600 text-[12px]">
-                        {tick}
-                      </text>
-                    </g>
-                  ))}
+    .card-head {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+      background: #fff;
+    }
 
-                  <line x1={pointX} y1={pointY} x2={pointX} y2={yScale(0)} stroke="#94a3b8" strokeDasharray="5 5" />
-                  <line x1={xScale(0)} y1={pointY} x2={pointX} y2={pointY} stroke="#94a3b8" strokeDasharray="5 5" />
-                  <circle cx={pointX} cy={pointY} r="14" fill="rgba(15,23,42,0.12)" />
-                  <circle cx={pointX} cy={pointY} r="8" fill="#0f172a" />
+    .card-head h2 {
+      margin: 0 0 6px 0;
+      font-size: 1.2rem;
+    }
 
-                  <text x={pointX + 12} y={pointY - 12} className="fill-slate-900 text-[13px] font-medium">
-                    ({formatNum(values.Cr_eq)}, {formatNum(values.Ni_eq)})
-                  </text>
+    .card-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.45;
+    }
 
-                  <text
-                    x={(xScale(0) + xScale(30)) / 2}
-                    y={height - 14}
-                    textAnchor="middle"
-                    className="fill-slate-900 text-[16px]"
-                  >
-                    Cr-ekvivalent
-                  </text>
-                  <text
-                    x={18}
-                    y={(yScale(0) + yScale(30)) / 2}
-                    textAnchor="middle"
-                    className="fill-slate-900 text-[16px]"
-                    transform={`rotate(-90 18 ${(yScale(0) + yScale(30)) / 2})`}
-                  >
-                    Ni-ekvivalent
-                  </text>
-                </svg>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </div>
-  );
-}
+    .card-body {
+      padding: 18px 20px 20px;
+    }
+
+    .fields {
+      display: grid;
+      gap: 14px;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+    }
+
+    .field-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .field-top label {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .value-tag {
+      font-size: 0.9rem;
+      color: var(--muted);
+      min-width: 66px;
+      text-align: right;
+    }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 94px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: #0f172a;
+      cursor: pointer;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      padding: 9px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      color: var(--text);
+      background: white;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .stat {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+    }
+
+    .stat .label {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .stat .value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .result {
+      margin-top: 12px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+    }
+
+    .result .label {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+
+    .result .value {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .note {
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: transform 0.05s ease, opacity 0.2s ease, background 0.2s ease;
+    }
+
+    button:hover { opacity: 0.95; }
+    button:active { transform: translateY(1px); }
+
+    .btn-primary {
+      background: #0f172a;
+      color: white;
+    }
+
+    .btn-secondary {

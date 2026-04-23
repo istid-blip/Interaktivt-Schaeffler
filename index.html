@@ -24,56 +24,95 @@
         }
         .controls {
             flex: 1;
-            min-width: 280px;
+            min-width: 320px;
         }
         .canvas-container {
             flex: 2;
             min-width: 480px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         canvas {
             background-color: #fff;
             border: 1px solid #ccc;
             border-radius: 4px;
             width: 100%;
+            max-width: 650px;
             height: auto;
+            margin: 10px 0;
         }
-        .slider-group {
-            margin-bottom: 15px;
-        }
-        .slider-group label {
-            display: flex;
-            justify-content: space-between;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        input[type="range"] {
-            width: 100%;
-        }
-        .results {
-            margin-top: 20px;
-            padding: 15px;
+        .formula-group {
             background: #e9ecef;
+            padding: 15px;
             border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .formula-group h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
             font-size: 1.1em;
+            color: #2c3e50;
+        }
+        .formula-line {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 1.05em;
+            line-height: 2;
+        }
+        .formula-line input[type="number"] {
+            width: 65px;
+            padding: 5px;
+            font-size: 1em;
+            border: 1px solid #bbb;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .result-label {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #e74c3c;
+            margin: 5px 0;
         }
     </style>
 </head>
 <body>
 
     <h2>Interaktivt Schaeffler-diagram</h2>
-    <p>Juster legeringselementene for å se fasestrukturen. Diagrammet er i sort-hvitt med linjer for konstant ferritt-innhold.</p>
+    <p>Skriv inn verdiene for legeringselementene direkte i formlene under for å se fasestrukturen. Diagrammet er i sort-hvitt med linjer for konstant ferritt-innhold.</p>
 
     <div class="container">
         <div class="controls" id="controls">
+            
+            <div class="formula-group">
+                <h3>Kromekvivalent (Cr<sub>ekv</sub>)</h3>
+                <div class="formula-line">
+                    <input type="number" id="Cr" value="18.0" step="0.1" min="0" max="40"> % Cr +
+                    <input type="number" id="Mo" value="0.0" step="0.1" min="0" max="10"> % Mo +
+                    1.5 &times; <input type="number" id="Si" value="0.5" step="0.1" min="0" max="5"> % Si +
+                    0.5 &times; <input type="number" id="Nb" value="0.0" step="0.01" min="0" max="2"> % Nb
+                </div>
             </div>
 
+            <div class="formula-group">
+                <h3>Nikkelekvivalent (Ni<sub>ekv</sub>)</h3>
+                <div class="formula-line">
+                    <input type="number" id="Ni" value="8.0" step="0.1" min="0" max="30"> % Ni +
+                    30 &times; <input type="number" id="C" value="0.08" step="0.01" min="0" max="1"> % C +
+                    0.5 &times; <input type="number" id="Mn" value="1.5" step="0.1" min="0" max="10"> % Mn
+                </div>
+            </div>
+
+        </div>
+
         <div class="canvas-container">
+            <div class="result-label">Nikkelekvivalent = <span id="niEqOut">0.00</span></div>
+            
             <canvas id="schaefflerCanvas" width="650" height="500"></canvas>
             
-            <div class="results">
-                <strong>Kromekvivalent (Cr<sub>ekv</sub>): </strong> <span id="crEqOut">0.0</span><br>
-                <strong>Nikkelekvivalent (Ni<sub>ekv</sub>): </strong> <span id="niEqOut">0.0</span>
-            </div>
+            <div class="result-label">Kromekvivalent = <span id="crEqOut">0.00</span></div>
         </div>
     </div>
 
@@ -81,15 +120,14 @@
         const canvas = document.getElementById('schaefflerCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Startverdier (Typisk 304 Austenittisk) + Niob (Nb)
         const elements = {
-            Cr: { value: 18.0, min: 0, max: 40, step: 0.1 },
-            Ni: { value: 8.0, min: 0, max: 30, step: 0.1 },
-            Mo: { value: 0.0, min: 0, max: 10, step: 0.1 },
-            Si: { value: 0.5, min: 0, max: 5, step: 0.1 },
-            C:  { value: 0.08, min: 0, max: 1.0, step: 0.01 },
-            Mn: { value: 1.5, min: 0, max: 10, step: 0.1 },
-            Nb: { value: 0.0, min: 0, max: 2.0, step: 0.01 } // Nytt element: Niob
+            Cr: { value: 18.0 },
+            Ni: { value: 8.0 },
+            Mo: { value: 0.0 },
+            Si: { value: 0.5 },
+            C:  { value: 0.08 },
+            Mn: { value: 1.5 },
+            Nb: { value: 0.0 }
         };
 
         const maxCr = 40;
@@ -98,24 +136,17 @@
         const plotWidth = canvas.width - margin * 2;
         const plotHeight = canvas.height - margin * 2;
 
-        // Bygg glidebrytere
-        const controlsDiv = document.getElementById('controls');
-        for (const [key, data] of Object.entries(elements)) {
-            const group = document.createElement('div');
-            group.className = 'slider-group';
-            group.innerHTML = `
-                <label for="${key}">${key} (%) <span id="${key}-val">${data.value}</span></label>
-                <input type="range" id="${key}" min="${data.min}" max="${data.max}" step="${data.step}" value="${data.value}">
-            `;
-            controlsDiv.appendChild(group);
-
-            document.getElementById(key).addEventListener('input', function(e) {
-                elements[key].value = parseFloat(e.target.value);
-                const decimalPlaces = (key === 'C' || key === 'Nb') ? 2 : 1;
-                document.getElementById(`${key}-val`).innerText = elements[key].value.toFixed(decimalPlaces);
+        const inputIds = ['Cr', 'Ni', 'Mo', 'Si', 'C', 'Mn', 'Nb'];
+        inputIds.forEach(id => {
+            const inputField = document.getElementById(id);
+            inputField.addEventListener('input', function(e) {
+                let val = parseFloat(e.target.value);
+                if (isNaN(val)) val = 0;
+                
+                elements[id].value = val;
                 updateDiagram();
             });
-        }
+        });
 
         function getCoords(crEq, niEq) {
             const x = margin + (crEq / maxCr) * plotWidth;
@@ -123,7 +154,7 @@
             return { x, y };
         }
 
-// Tegn fasedelingene (Beregnet nøyaktig fra originaldiagrammet)
+        // Tegn fasedelingene (Beregnet nøyaktig fra originaldiagrammet)
         function drawPhases() {
             ctx.strokeStyle = "#000";
             ctx.lineWidth = 1;
@@ -177,7 +208,7 @@
             ctx.lineWidth = 1;
             ctx.font = "13px Arial";
             
-            const ferriteLines = [                
+            const ferriteLines = [                 
                 // 5% - 80% starter nå EKSAKT på Linje 3 (A+M / M grensen)
                 { startCr: 14.03, startNi: 8.16, endCr: 30.7, endNi: 30.0, label: "5%",        labelCr: 27.0, labelNi: 25.1 },
                 { startCr: 14.82, startNi: 7.52, endCr: 32.8, endNi: 30.0, label: "10%",       labelCr: 29.0, labelNi: 25.3 },
@@ -256,6 +287,7 @@
             const crEq = elements.Cr.value + elements.Mo.value + 1.5 * elements.Si.value + 0.5 * elements.Nb.value;
             const niEq = elements.Ni.value + 30 * elements.C.value + 0.5 * elements.Mn.value;
 
+            // Sender de utregnede tallene til de nye HTML-elementene over/under canvaset
             document.getElementById('crEqOut').innerText = crEq.toFixed(2);
             document.getElementById('niEqOut').innerText = niEq.toFixed(2);
 
